@@ -33,6 +33,13 @@ export class DatabaseService {
   }
 
   /**
+   * Execute a query with parameters (for PerformanceAnalyzer)
+   */
+  async execute(query: string, params: any[]): Promise<[any, any]> {
+    return await this.pool.execute(query, params);
+  }
+
+  /**
    * Get or create symbol ID
    */
   async getSymbolId(symbol: string): Promise<number> {

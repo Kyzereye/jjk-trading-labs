@@ -1,12 +1,246 @@
 .top-performers-container {
-  padding: 20px;
-  text-align: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 30px 15px;
 }
 
 h1 {
-  color: #ffffff;
+  color: #66615b;
+  margin-bottom: 10px;
+  font-size: 28px;
+  font-weight: 300;
+  font-family: 'Roboto', sans-serif;
 }
 
-p {
-  color: #b0b0b0;
+.subtitle {
+  color: #9a9a9a;
+  margin-bottom: 30px;
+  font-size: 14px;
+  font-weight: 300;
+}
+
+// Stats Summary
+.stats-summary {
+  margin-bottom: 20px;
+  
+  mat-chip-set {
+    display: flex;
+    gap: 10px;
+  }
+  
+  mat-chip {
+    background-color: #f4f3ef;
+    color: #66615b;
+    font-size: 13px;
+    font-weight: 400;
+  }
+}
+
+// Controls Card
+.controls-card {
+  margin-bottom: 20px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+}
+
+.controls {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+  
+  mat-form-field {
+    min-width: 200px;
+  }
+  
+  button {
+    height: 40px;
+    background-color: #51cbce;
+    color: #ffffff;
+    
+    mat-icon {
+      margin-right: 8px;
+    }
+    
+    &:hover:not([disabled]) {
+      background-color: #3ab5b8;
+    }
+  }
+}
+
+// Loading State
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+  
+  mat-spinner {
+    margin: 0 auto 20px;
+  }
+  
+  p {
+    color: #9a9a9a;
+    font-size: 16px;
+  }
+}
+
+// No Data Card
+.no-data-card {
+  text-align: center;
+  padding: 60px 40px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+  
+  .large-icon {
+    font-size: 80px;
+    width: 80px;
+    height: 80px;
+    color: #fbc658;
+    margin: 0 auto 20px;
+  }
+  
+  h2 {
+    color: #66615b;
+    font-weight: 300;
+    margin-bottom: 15px;
+  }
+  
+  p {
+    color: #9a9a9a;
+    margin-bottom: 20px;
+  }
+  
+  code {
+    background-color: #f4f3ef;
+    padding: 10px 20px;
+    border-radius: 4px;
+    display: inline-block;
+    color: #66615b;
+    font-family: 'Courier New', monospace;
+  }
+}
+
+// Results Card
+.results-card {
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+// Table
+.performers-table {
+  width: 100%;
+  background-color: transparent;
+  
+  mat-header-cell {
+    color: #66615b;
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 16px 12px;
+    background-color: #f4f3ef;
+  }
+  
+  mat-cell {
+    color: #66615b;
+    font-size: 14px;
+    padding: 16px 12px;
+    border-bottom: 1px solid #f4f3ef;
+  }
+  
+  .performer-row {
+    transition: background-color 0.2s;
+    
+    &:hover {
+      background-color: #fafafa;
+      cursor: pointer;
+    }
+  }
+}
+
+// Rank Badge
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  background-color: #f4f3ef;
+  color: #66615b;
+  
+  &.rank-gold {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+  }
+  
+  &.rank-silver {
+    background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+    color: #66615b;
+    box-shadow: 0 2px 4px rgba(192, 192, 192, 0.3);
+  }
+  
+  &.rank-bronze {
+    background: linear-gradient(135deg, #cd7f32 0%, #e39b5f 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(205, 127, 50, 0.3);
+  }
+}
+
+// Performance Value
+.performance-value {
+  font-weight: 600;
+  font-size: 15px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  display: inline-block;
+  
+  &.positive {
+    color: #6bd098;
+    background-color: rgba(107, 208, 152, 0.1);
+  }
+  
+  &.negative {
+    color: #ef8157;
+    background-color: rgba(239, 129, 87, 0.1);
+  }
+  
+  &.neutral {
+    color: #9a9a9a;
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .top-performers-container {
+    padding: 20px 10px;
+  }
+  
+  h1 {
+    font-size: 24px;
+  }
+  
+  .controls {
+    flex-direction: column;
+    align-items: stretch;
+    
+    mat-form-field,
+    button {
+      width: 100%;
+    }
+  }
+  
+  .performers-table {
+    mat-header-cell,
+    mat-cell {
+      padding: 8px 4px;
+      font-size: 11px;
+    }
+  }
 }

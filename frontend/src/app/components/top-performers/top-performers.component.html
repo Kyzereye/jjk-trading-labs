@@ -1,4 +1,140 @@
 <div class="top-performers-container">
-  <h1>Top Performers</h1>
-  <p>Coming soon...</p>
+  <h1>Top Performing Stocks</h1>
+  <p class="subtitle">MA Trading Strategy Performance Rankings</p>
+
+  <!-- Stats Summary -->
+  <div class="stats-summary" *ngIf="latestAnalysisDate">
+    <mat-chip-set>
+      <mat-chip>Total Analyzed: {{ totalAnalyzed }} stocks</mat-chip>
+      <mat-chip>Last Updated: {{ latestAnalysisDate | date:'shortDate' }}</mat-chip>
+      <mat-chip>Min Trades: {{ minTrades }}</mat-chip>
+    </mat-chip-set>
+  </div>
+
+  <!-- Sort Options -->
+  <mat-card class="controls-card">
+    <mat-card-content>
+      <div class="controls">
+        <mat-form-field appearance="outline">
+          <mat-label>Sort By</mat-label>
+          <mat-select [(value)]="sortBy" (selectionChange)="changeSortCriteria(sortBy)">
+            <mat-option value="total_return_pct">Total Return %</mat-option>
+            <mat-option value="sharpe_ratio">Sharpe Ratio</mat-option>
+            <mat-option value="win_rate">Win Rate</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Results Limit</mat-label>
+          <mat-select [(value)]="limit" (selectionChange)="loadTopPerformers()">
+            <mat-option [value]="10">Top 10</mat-option>
+            <mat-option [value]="20">Top 20</mat-option>
+            <mat-option [value]="50">Top 50</mat-option>
+            <mat-option [value]="100">Top 100</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-raised-button color="primary" (click)="loadTopPerformers()" [disabled]="loading">
+          <mat-icon>refresh</mat-icon>
+          Refresh
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <mat-spinner diameter="60"></mat-spinner>
+    <p>Loading top performers...</p>
+  </div>
+
+  <!-- No Data State -->
+  <mat-card *ngIf="!loading && topPerformers.length === 0" class="no-data-card">
+    <mat-card-content>
+      <mat-icon class="large-icon">info</mat-icon>
+      <h2>No Performance Data Available</h2>
+      <p>Run the data fetch script to generate performance metrics:</p>
+      <code>cd get_stock_data && npm run fetch-3year</code>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Results Table -->
+  <mat-card *ngIf="!loading && topPerformers.length > 0" class="results-card">
+    <mat-table [dataSource]="topPerformers" class="performers-table">
+      <!-- Rank Column -->
+      <ng-container matColumnDef="rank">
+        <mat-header-cell *matHeaderCellDef>Rank</mat-header-cell>
+        <mat-cell *matCellDef="let performer; let i = index">
+          <span class="rank-badge" [ngClass]="getRankClass(i + 1)">
+            #{{ i + 1 }}
+          </span>
+        </mat-cell>
+      </ng-container>
+
+      <!-- Symbol Column -->
+      <ng-container matColumnDef="symbol">
+        <mat-header-cell *matHeaderCellDef>Symbol</mat-header-cell>
+        <mat-cell *matCellDef="let performer">
+          <strong>{{ performer.symbol }}</strong>
+        </mat-cell>
+      </ng-container>
+
+      <!-- Company Name Column -->
+      <ng-container matColumnDef="company_name">
+        <mat-header-cell *matHeaderCellDef>Company</mat-header-cell>
+        <mat-cell *matCellDef="let performer">
+          {{ performer.company_name }}
+        </mat-cell>
+      </ng-container>
+
+      <!-- Total Return Column -->
+      <ng-container matColumnDef="total_return_pct">
+        <mat-header-cell *matHeaderCellDef>Total Return</mat-header-cell>
+        <mat-cell *matCellDef="let performer">
+          <span class="performance-value" [ngClass]="getPerformanceColor(performer.total_return_pct)">
+            {{ formatPercent(performer.total_return_pct) }}
+          </span>
+        </mat-cell>
+      </ng-container>
+
+      <!-- Win Rate Column -->
+      <ng-container matColumnDef="win_rate">
+        <mat-header-cell *matHeaderCellDef>Win Rate</mat-header-cell>
+        <mat-cell *matCellDef="let performer">
+          {{ formatPercent(performer.win_rate) }}
+        </mat-cell>
+      </ng-container>
+
+      <!-- Sharpe Ratio Column -->
+      <ng-container matColumnDef="sharpe_ratio">
+        <mat-header-cell *matHeaderCellDef>Sharpe Ratio</mat-header-cell>
+        <mat-cell *matCellDef="let performer">
+          {{ performer.sharpe_ratio.toFixed(2) }}
+        </mat-cell>
+      </ng-container>
+
+      <!-- Total Trades Column -->
+      <ng-container matColumnDef="total_trades">
+        <mat-header-cell *matHeaderCellDef>Trades</mat-header-cell>
+        <mat-cell *matCellDef="let performer">
+          {{ performer.total_trades }}
+        </mat-cell>
+      </ng-container>
+
+      <!-- Actions Column -->
+      <ng-container matColumnDef="actions">
+        <mat-header-cell *matHeaderCellDef>Actions</mat-header-cell>
+        <mat-cell *matCellDef="let performer">
+          <button mat-icon-button 
+                  (click)="analyzeStock(performer.symbol)"
+                  matTooltip="Analyze {{ performer.symbol }}">
+            <mat-icon>insights</mat-icon>
+          </button>
+        </mat-cell>
+      </ng-container>
+
+      <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumns;" class="performer-row"></mat-row>
+    </mat-table>
+  </mat-card>
 </div>

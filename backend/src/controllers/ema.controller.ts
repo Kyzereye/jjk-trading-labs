@@ -311,32 +311,86 @@ router.get('/summary/:symbol', asyncHandler(async (req: Request, res: Response) 
  */
 router.post('/top-performers', authMiddleware, asyncHandler(async (req: AuthRequest, res: Response) => {
   const {
-    initial_capital = 100000,
-    days = 365,
-    atr_period = 14,
-    atr_multiplier = 2.0,
-    ma_type = 'ema',
-    position_sizing_percentage = 5.0
+    limit = 20,
+    sort_by = 'total_return_pct',
+    min_trades = 5
   } = req.body;
 
-  // Build analysis parameters for filtering
-  const analysisParams = {
-    initial_capital,
-    atr_period,
-    atr_multiplier,
-    ma_type,
-    position_sizing_percentage,
-    days
-  };
+  // Ensure limit is a valid number
+  const limitNum = Math.min(Math.max(parseInt(String(limit)), 1), 200);
+  const minTradesNum = Math.max(parseInt(String(min_trades)), 0);
 
-  // For now, return empty results with suggestion
-  // In a full implementation, this would query pre-computed results from database
+  // Validate sort_by
+  const validSortFields = ['total_return_pct', 'sharpe_ratio', 'win_rate'];
+  const sortField = validSortFields.includes(sort_by) ? sort_by : 'total_return_pct';
+
+  // Build query with safe ORDER BY and LIMIT (using interpolation for LIMIT is safe with validated number)
+  let query = `
+    SELECT 
+      s.symbol,
+      s.company_name,
+      p.total_return_pct,
+      p.total_pnl,
+      p.win_rate,
+      p.total_trades,
+      p.sharpe_ratio,
+      p.analysis_date,
+      p.analysis_params
+    FROM stock_performance_metrics p
+    JOIN stock_symbols s ON p.symbol_id = s.id
+    WHERE p.total_trades >= ?
+      AND p.analysis_date = (SELECT MAX(analysis_date) FROM stock_performance_metrics)
+  `;
+  
+  // Add ORDER BY based on validated field
+  if (sortField === 'sharpe_ratio') {
+    query += ' ORDER BY p.sharpe_ratio DESC';
+  } else if (sortField === 'win_rate') {
+    query += ' ORDER BY p.win_rate DESC';
+  } else {
+    query += ' ORDER BY p.total_return_pct DESC';
+  }
+  
+  // Add LIMIT using string interpolation (safe because limitNum is validated as integer)
+  query += ` LIMIT ${limitNum}`;
+
+  const { getDbConnection } = await import('../utils/database');
+  const db = getDbConnection();
+  
+  const [rows] = await db.execute(query, [minTradesNum]);
+  
+  const topPerformers = (rows as any[]).map(row => ({
+    symbol: row.symbol,
+    company_name: row.company_name,
+    total_return_pct: parseFloat(row.total_return_pct || 0),
+    total_pnl: parseFloat(row.total_pnl || 0),
+    win_rate: parseFloat(row.win_rate || 0),
+    total_trades: parseInt(row.total_trades || 0),
+    sharpe_ratio: parseFloat(row.sharpe_ratio || 0),
+    analysis_date: row.analysis_date
+  }));
+
+  // Get total analyzed count
+  const [countRows] = await db.execute(
+    'SELECT COUNT(*) as count FROM stock_performance_metrics WHERE analysis_date = (SELECT MAX(analysis_date) FROM stock_performance_metrics)',
+    []
+  );
+  const totalAnalyzed = (countRows as any[])[0]?.count || 0;
+
+  // Get latest analysis date
+  const [dateRows] = await db.execute(
+    'SELECT MAX(analysis_date) as latest FROM stock_performance_metrics',
+    []
+  );
+  const latestAnalysisDate = (dateRows as any[])[0]?.latest || null;
+
   res.json({
     success: true,
-    top_performers: [],
-    total_analyzed: 0,
-    message: 'No pre-computed analysis results found. Run data update scripts to generate performance metrics.',
-    analysis_params: analysisParams
+    top_performers: topPerformers,
+    total_analyzed: totalAnalyzed,
+    latest_analysis_date: latestAnalysisDate,
+    sort_by: sortField,
+    limit
   });
 }));
 
