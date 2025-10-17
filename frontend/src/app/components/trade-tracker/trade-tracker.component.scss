@@ -1,0 +1,168 @@
+.trade-tracker-container {
+  padding: 20px;
+  max-width: 100%;
+}
+
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  
+  h2 {
+    color: #66615b;
+    font-size: 1.5em;
+    font-weight: 300;
+    margin: 0;
+  }
+  
+  .subtitle {
+    color: #9a9a9a;
+    font-size: 0.9em;
+    margin: 5px 0 0 0;
+  }
+  
+  button {
+    mat-icon {
+      margin-right: 5px;
+    }
+  }
+}
+
+.trade-form-card {
+  margin-bottom: 20px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+  
+  mat-card-title {
+    color: #66615b;
+    font-weight: 300;
+  }
+}
+
+.trade-form {
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+  
+  .full-width {
+    width: 100%;
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  span[matTextPrefix] {
+    margin-right: 8px;
+    color: #66615b;
+    font-weight: 400;
+  }
+}
+
+.trades-card {
+  margin-bottom: 20px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+  
+  mat-card-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #f4f3ef;
+    
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #66615b;
+      font-weight: 300;
+      
+      mat-icon {
+        color: #51cbce;
+        font-size: 22px;
+      }
+    }
+  }
+}
+
+.trades-table {
+  width: 100%;
+  
+  th {
+    background-color: #f4f3ef;
+    color: #66615b;
+    font-weight: 400;
+    text-transform: uppercase;
+    font-size: 0.75em;
+    letter-spacing: 0.05em;
+    padding: 12px 10px;
+  }
+  
+  td {
+    color: #66615b;
+    padding: 12px 10px;
+    border-bottom: 1px solid #f4f3ef;
+    font-size: 0.9em;
+  }
+  
+  tr:hover {
+    background-color: #fafafa;
+  }
+  
+  strong {
+    font-weight: 500;
+    color: #51cbce;
+  }
+  
+  .positive {
+    color: #6bd098;
+    font-weight: 500;
+  }
+  
+  .negative {
+    color: #ef8157;
+    font-weight: 500;
+  }
+  
+  .pnl-placeholder {
+    color: #9a9a9a;
+    font-size: 0.85em;
+    font-style: italic;
+  }
+}
+
+.empty-state-card {
+  text-align: center;
+  padding: 60px 20px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+  
+  mat-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    color: #9a9a9a;
+    opacity: 0.5;
+    margin-bottom: 20px;
+  }
+  
+  h3 {
+    color: #66615b;
+    font-weight: 300;
+    margin-bottom: 10px;
+  }
+  
+  p {
+    color: #9a9a9a;
+    margin-bottom: 30px;
+  }
+}
+

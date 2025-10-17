@@ -1,0 +1,258 @@
+<div class="trade-tracker-container">
+  <div class="header-section">
+    <h2>Trade Tracker</h2>
+    <p class="subtitle">Track your real broker trades and monitor performance</p>
+    <button mat-raised-button color="primary" (click)="showAddForm()" *ngIf="!showForm">
+      <mat-icon>add</mat-icon>
+      Add New Trade
+    </button>
+  </div>
+
+  <!-- Add/Edit Trade Form -->
+  <mat-card *ngIf="showForm" class="trade-form-card">
+    <mat-card-header>
+      <mat-card-title>{{ editingTrade ? 'Edit Trade' : 'Add New Trade' }}</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="tradeForm" class="trade-form">
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Stock Symbol</mat-label>
+            <input matInput 
+                   formControlName="symbol" 
+                   placeholder="AAPL" 
+                   style="text-transform: uppercase;"
+                   [matAutocomplete]="auto">
+            <mat-autocomplete #auto="matAutocomplete">
+              <mat-option *ngFor="let symbol of filteredSymbols | async" [value]="symbol">
+                {{ symbol }}
+              </mat-option>
+            </mat-autocomplete>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Entry Date</mat-label>
+            <input matInput 
+                   [matDatepicker]="entryPicker" 
+                   formControlName="entry_date"
+                   placeholder="MM/DD/YYYY">
+            <mat-datepicker-toggle matSuffix [for]="entryPicker"></mat-datepicker-toggle>
+            <mat-datepicker #entryPicker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Entry Price</mat-label>
+            <span matTextPrefix>$</span>
+            <input matInput type="number" formControlName="entry_price" step="0.01" placeholder="0.00">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Shares</mat-label>
+            <input matInput type="number" formControlName="shares" placeholder="100">
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Stop Loss</mat-label>
+            <span matTextPrefix>$</span>
+            <input matInput type="number" formControlName="stop_loss" step="0.01" placeholder="Auto-calculated">
+            <mat-hint>Stop loss PRICE (not distance) - based on ATR {{ defaultStopLossMultiplier }}x</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Target Price (Optional)</mat-label>
+            <span matTextPrefix>$</span>
+            <input matInput type="number" formControlName="target_price" step="0.01" placeholder="0.00">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Exit Date (Optional)</mat-label>
+            <input matInput 
+                   [matDatepicker]="exitPicker" 
+                   formControlName="exit_date"
+                   [min]="getMinExitDate()"
+                   (dateChange)="validateExitDate()"
+                   placeholder="MM/DD/YYYY">
+            <mat-datepicker-toggle matSuffix [for]="exitPicker"></mat-datepicker-toggle>
+            <mat-datepicker #exitPicker></mat-datepicker>
+            <mat-error *ngIf="tradeForm.get('exit_date')?.hasError('invalidDate')">
+              Exit date must be after entry date
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Exit Price (Optional)</mat-label>
+            <span matTextPrefix>$</span>
+            <input matInput type="number" formControlName="exit_price" step="0.01" placeholder="0.00">
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Trade Notes (Optional)</mat-label>
+          <textarea matInput formControlName="trade_notes" rows="3" placeholder="Entry reason, strategy notes, etc."></textarea>
+        </mat-form-field>
+
+        <div class="form-actions">
+          <button mat-button (click)="cancelForm()">Cancel</button>
+          <button mat-raised-button color="primary" (click)="saveTrade()" [disabled]="tradeForm.invalid">
+            {{ editingTrade ? 'Update Trade' : 'Add Trade' }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Open Trades -->
+  <mat-card class="trades-card" *ngIf="openTrades.length > 0">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>trending_up</mat-icon>
+        Open Positions ({{ openTrades.length }})
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <mat-table [dataSource]="openTrades" class="trades-table">
+        <ng-container matColumnDef="symbol">
+          <mat-header-cell *matHeaderCellDef>Symbol</mat-header-cell>
+          <mat-cell *matCellDef="let trade"><strong>{{ trade.symbol }}</strong></mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="entry_date">
+          <mat-header-cell *matHeaderCellDef>Entry Date</mat-header-cell>
+          <mat-cell *matCellDef="let trade">{{ trade.entry_date | date:'shortDate' }}</mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="entry_price">
+          <mat-header-cell *matHeaderCellDef>Entry Price</mat-header-cell>
+          <mat-cell *matCellDef="let trade">{{ formatCurrency(trade.entry_price) }}</mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="shares">
+          <mat-header-cell *matHeaderCellDef>Shares</mat-header-cell>
+          <mat-cell *matCellDef="let trade">{{ trade.shares }}</mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="stop_loss">
+          <mat-header-cell *matHeaderCellDef>Stop Loss</mat-header-cell>
+          <mat-cell *matCellDef="let trade">{{ trade.stop_loss ? formatCurrency(trade.stop_loss) : '-' }}</mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="target_price">
+          <mat-header-cell *matHeaderCellDef>Target</mat-header-cell>
+          <mat-cell *matCellDef="let trade">{{ trade.target_price ? formatCurrency(trade.target_price) : '-' }}</mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="current_pnl">
+          <mat-header-cell *matHeaderCellDef>Current P&L</mat-header-cell>
+          <mat-cell *matCellDef="let trade">
+            <span class="pnl-placeholder">Live tracking coming soon</span>
+          </mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <mat-header-cell *matHeaderCellDef>Actions</mat-header-cell>
+          <mat-cell *matCellDef="let trade">
+            <button mat-icon-button (click)="editTrade(trade)" matTooltip="Edit">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="deleteTrade(trade)" matTooltip="Delete">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </mat-cell>
+        </ng-container>
+
+        <mat-header-row *matHeaderRowDef="displayedColumnsOpen"></mat-header-row>
+        <mat-row *matRowDef="let row; columns: displayedColumnsOpen;"></mat-row>
+      </mat-table>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Closed Trades -->
+  <mat-card class="trades-card" *ngIf="closedTrades.length > 0">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>history</mat-icon>
+        Closed Trades ({{ closedTrades.length }})
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <mat-table [dataSource]="closedTrades" class="trades-table">
+        <ng-container matColumnDef="symbol">
+          <mat-header-cell *matHeaderCellDef>Symbol</mat-header-cell>
+          <mat-cell *matCellDef="let trade"><strong>{{ trade.symbol }}</strong></mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="entry_date">
+          <mat-header-cell *matHeaderCellDef>Entry</mat-header-cell>
+          <mat-cell *matCellDef="let trade">{{ trade.entry_date | date:'shortDate' }}</mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="exit_date">
+          <mat-header-cell *matHeaderCellDef>Exit</mat-header-cell>
+          <mat-cell *matCellDef="let trade">{{ trade.exit_date | date:'shortDate' }}</mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="entry_price">
+          <mat-header-cell *matHeaderCellDef>Entry Price</mat-header-cell>
+          <mat-cell *matCellDef="let trade">{{ formatCurrency(trade.entry_price) }}</mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="exit_price">
+          <mat-header-cell *matHeaderCellDef>Exit Price</mat-header-cell>
+          <mat-cell *matCellDef="let trade">{{ formatCurrency(trade.exit_price || 0) }}</mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="shares">
+          <mat-header-cell *matHeaderCellDef>Shares</mat-header-cell>
+          <mat-cell *matCellDef="let trade">{{ trade.shares }}</mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="pnl">
+          <mat-header-cell *matHeaderCellDef>P&L</mat-header-cell>
+          <mat-cell *matCellDef="let trade">
+            <span [class]="getPnLClass(trade.pnl || 0)">{{ formatCurrency(trade.pnl || 0) }}</span>
+          </mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="pnl_percent">
+          <mat-header-cell *matHeaderCellDef>P&L %</mat-header-cell>
+          <mat-cell *matCellDef="let trade">
+            <span [class]="getPnLClass(trade.pnl_percent || 0)">
+              {{ trade.pnl_percent ? (trade.pnl_percent > 0 ? '+' : '') + trade.pnl_percent.toFixed(2) + '%' : '-' }}
+            </span>
+          </mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <mat-header-cell *matHeaderCellDef>Actions</mat-header-cell>
+          <mat-cell *matCellDef="let trade">
+            <button mat-icon-button (click)="editTrade(trade)" matTooltip="Edit">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="deleteTrade(trade)" matTooltip="Delete">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </mat-cell>
+        </ng-container>
+
+        <mat-header-row *matHeaderRowDef="displayedColumnsClosed"></mat-header-row>
+        <mat-row *matRowDef="let row; columns: displayedColumnsClosed;"></mat-row>
+      </mat-table>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Empty State -->
+  <mat-card *ngIf="!loading && openTrades.length === 0 && closedTrades.length === 0 && !showForm" class="empty-state-card">
+    <mat-card-content>
+      <mat-icon>receipt_long</mat-icon>
+      <h3>No Trades Yet</h3>
+      <p>Start tracking your broker trades to monitor performance</p>
+      <button mat-raised-button color="primary" (click)="showAddForm()">
+        <mat-icon>add</mat-icon>
+        Add Your First Trade
+      </button>
+    </mat-card-content>
+  </mat-card>
+</div>
+

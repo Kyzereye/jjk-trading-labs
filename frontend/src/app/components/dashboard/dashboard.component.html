@@ -1,0 +1,236 @@
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1>Dashboard</h1>
+    <p class="welcome-text">Welcome back, {{ user?.name }}!</p>
+  </div>
+
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner></mat-spinner>
+    <p>Loading dashboard...</p>
+  </div>
+
+  <div *ngIf="!loading" class="dashboard-content">
+    
+    <!-- Stats Cards Row -->
+    <div class="stats-grid">
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-icon">
+            <mat-icon>assessment</mat-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ dashboardStats.totalAnalyses }}</div>
+            <div class="stat-label">Total Analyses</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-icon success">
+            <mat-icon>trending_up</mat-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ dashboardStats.bestPerformingStock }}</div>
+            <div class="stat-label">Best Performer</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-icon accent">
+            <mat-icon>show_chart</mat-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ formatPercent(dashboardStats.averageWinRate) }}</div>
+            <div class="stat-label">Avg Win Rate</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="stat-card">
+        <mat-card-content>
+          <div class="stat-icon primary">
+            <mat-icon>swap_horiz</mat-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ dashboardStats.totalTrades }}</div>
+            <div class="stat-label">Total Trades</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Trade Tracker - Full Width -->
+    <app-trade-tracker></app-trade-tracker>
+
+    <!-- Favorite Stocks Watchlist - Full Width -->
+    <mat-card class="watchlist-card full-width">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>star</mat-icon>
+            Favorite Stocks Watchlist
+          </mat-card-title>
+
+        </mat-card-header>
+        <mat-card-content>
+          <!-- Empty State -->
+          <div *ngIf="favoriteStocks.length === 0" class="empty-favorites">
+            <mat-icon>star_border</mat-icon>
+            <h3>No Favorite Stocks Yet</h3>
+          </div>
+
+          <!-- Favorites Table -->
+          <mat-table *ngIf="favoriteStocks.length > 0" [dataSource]="favoriteStocks" class="favorites-table">
+            <ng-container matColumnDef="symbol">
+              <mat-header-cell *matHeaderCellDef>Symbol</mat-header-cell>
+              <mat-cell *matCellDef="let stock">
+                <strong>{{ stock.symbol }}</strong>
+              </mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="price">
+              <mat-header-cell *matHeaderCellDef>Price</mat-header-cell>
+              <mat-cell *matCellDef="let stock">
+                {{ stock.latest_price ? formatCurrency(stock.latest_price) : '-' }}
+              </mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="ma21">
+              <mat-header-cell *matHeaderCellDef>21 MA</mat-header-cell>
+              <mat-cell *matCellDef="let stock">
+                {{ stock.ma_21 ? formatCurrency(stock.ma_21) : '-' }}
+              </mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="ma50">
+              <mat-header-cell *matHeaderCellDef>50 MA</mat-header-cell>
+              <mat-cell *matCellDef="let stock">
+                {{ stock.ma_50 ? formatCurrency(stock.ma_50) : '-' }}
+              </mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="lastSignal">
+              <mat-header-cell *matHeaderCellDef>Last Signal</mat-header-cell>
+              <mat-cell *matCellDef="let stock">
+                <span class="signal-badge" 
+                      [ngClass]="{
+                        'buy-signal': stock.last_signal_color === 'buy',
+                        'sell-signal': stock.last_signal_color === 'sell',
+                        'alert-badge': stock.last_signal_color === 'alert',
+                        'neutral-badge': stock.last_signal_color === 'neutral'
+                      }">
+                  {{ stock.last_signal || '-' }}
+                </span>
+              </mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <mat-header-cell *matHeaderCellDef>Market Status</mat-header-cell>
+              <mat-cell *matCellDef="let stock">
+                <span class="status-text" 
+                      [ngClass]="{
+                        'status-success': stock.status_color === 'success',
+                        'status-warning': stock.status_color === 'warning',
+                        'status-info': stock.status_color === 'info',
+                        'status-neutral': stock.status_color === 'neutral'
+                      }">
+                  {{ stock.status || 'Loading...' }}
+                </span>
+              </mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="action">
+              <mat-header-cell *matHeaderCellDef>Action</mat-header-cell>
+              <mat-cell *matCellDef="let stock">
+                <button mat-raised-button 
+                        color="primary" 
+                        size="small"
+                        (click)="runQuickAnalysis(stock.symbol)">
+                  Analyze
+                </button>
+              </mat-cell>
+            </ng-container>
+
+            <mat-header-row *matHeaderRowDef="['symbol', 'price', 'ma21', 'ma50', 'lastSignal', 'status', 'action']"></mat-header-row>
+            <mat-row *matRowDef="let row; columns: ['symbol', 'price', 'ma21', 'ma50', 'lastSignal', 'status', 'action'];"></mat-row>
+          </mat-table>
+        </mat-card-content>
+    </mat-card>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+
+      <!-- Recent Analyses -->
+      <mat-card class="recent-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>history</mat-icon>
+            Recent Analyses
+          </mat-card-title>
+          <mat-card-subtitle>Your latest trading analysis results</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <div *ngIf="recentAnalyses.length === 0" class="empty-state">
+            <mat-icon>insights</mat-icon>
+            <p>No recent analyses yet</p>
+            <button mat-raised-button color="primary" routerLink="/trading">
+              Run Your First Analysis
+            </button>
+          </div>
+          
+          <div *ngIf="recentAnalyses.length > 0" class="recent-list">
+            <div *ngFor="let analysis of recentAnalyses" class="recent-item">
+              <div class="recent-symbol">{{ analysis.symbol }}</div>
+              <div class="recent-stats">
+                <span class="stat" [ngClass]="getChangeClass(analysis.total_return)">
+                  {{ formatPercent(analysis.total_return) }}
+                </span>
+                <span class="stat-label">Return</span>
+              </div>
+              <div class="recent-stats">
+                <span class="stat">{{ formatPercent(analysis.win_rate) }}</span>
+                <span class="stat-label">Win Rate</span>
+              </div>
+              <div class="recent-date">{{ analysis.date | date:'short' }}</div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+
+    <!-- Quick Actions -->
+    <mat-card class="actions-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>flash_on</mat-icon>
+          Quick Actions
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="quick-actions">
+          <button mat-raised-button color="primary" routerLink="/trading">
+            <mat-icon>analytics</mat-icon>
+            Run Analysis
+          </button>
+          <button mat-raised-button color="accent" routerLink="/optimize">
+            <mat-icon>tune</mat-icon>
+            Optimize Strategy
+          </button>
+          <button mat-raised-button routerLink="/top-performers">
+            <mat-icon>emoji_events</mat-icon>
+            View Top Performers
+          </button>
+          <button mat-raised-button routerLink="/profile">
+            <mat-icon>settings</mat-icon>
+            Settings
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+</div>
+

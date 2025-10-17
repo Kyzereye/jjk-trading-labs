@@ -1,0 +1,305 @@
+<div class="profile-container">
+  <div class="profile-header">
+    <h1>User Profile</h1>
+    <mat-chip [color]="user?.role === 1 ? 'primary' : 'accent'">
+      {{ user?.role === 1 ? 'User' : 'Admin' }}
+    </mat-chip>
+  </div>
+  
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner></mat-spinner>
+    <p>Loading profile...</p>
+  </div>
+
+  <div *ngIf="!loading" class="profile-content">
+    <!-- Alert Messages -->
+    <mat-card *ngIf="message" class="message-card" [class]="'message-' + message.type">
+      <mat-card-content>
+        <div class="message-content">
+          <mat-icon>{{ message.type === 'success' ? 'check_circle' : 'error' }}</mat-icon>
+          <span>{{ message.text }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Tab Navigation -->
+    <mat-tab-group [(selectedIndex)]="activeTab" (selectedIndexChange)="onTabChange($event)">
+      
+      <!-- Account Tab -->
+      <mat-tab label="Account">
+        <div class="tab-content">
+          <mat-card class="form-card">
+            <mat-card-header>
+              <mat-card-title>Account Information</mat-card-title>
+            </mat-card-header>
+            
+            <mat-card-content>
+              <form [formGroup]="profileForm" class="profile-form">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Name</mat-label>
+                  <input matInput formControlName="name" placeholder="Enter your full name">
+                  <mat-error *ngIf="profileForm.get('name')?.hasError('required')">
+                    Name is required
+                  </mat-error>
+                  <mat-error *ngIf="profileForm.get('name')?.hasError('minlength')">
+                    Name must be at least 2 characters
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Email</mat-label>
+                  <input matInput type="email" formControlName="email" placeholder="Enter your email">
+                  <mat-error *ngIf="profileForm.get('email')?.hasError('required')">
+                    Email is required
+                  </mat-error>
+                  <mat-error *ngIf="profileForm.get('email')?.hasError('email')">
+                    Please enter a valid email
+                  </mat-error>
+                </mat-form-field>
+
+                <div class="form-actions">
+                  <button mat-raised-button 
+                          color="primary" 
+                          (click)="updateProfile()"
+                          [disabled]="profileForm.invalid || saving">
+                    <mat-spinner diameter="20" *ngIf="saving"></mat-spinner>
+                    <span *ngIf="!saving">Update Profile</span>
+                  </button>
+                </div>
+              </form>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- Password Tab -->
+      <mat-tab label="Password">
+        <div class="tab-content">
+          <mat-card class="form-card">
+            <mat-card-header>
+              <mat-card-title>Change Password</mat-card-title>
+            </mat-card-header>
+            
+            <mat-card-content>
+              <form [formGroup]="passwordForm" class="password-form">
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Current Password</mat-label>
+                  <input matInput 
+                         [type]="hideCurrentPassword ? 'password' : 'text'" 
+                         formControlName="currentPassword" 
+                         placeholder="Enter current password">
+                  <button mat-icon-button matSuffix (click)="hideCurrentPassword = !hideCurrentPassword" type="button">
+                    <mat-icon>{{ hideCurrentPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  </button>
+                  <mat-error *ngIf="passwordForm.get('currentPassword')?.hasError('required')">
+                    Current password is required
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>New Password</mat-label>
+                  <input matInput 
+                         [type]="hideNewPassword ? 'password' : 'text'" 
+                         formControlName="newPassword" 
+                         placeholder="Enter new password">
+                  <button mat-icon-button matSuffix (click)="hideNewPassword = !hideNewPassword" type="button">
+                    <mat-icon>{{ hideNewPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  </button>
+                  <mat-error *ngIf="passwordForm.get('newPassword')?.hasError('required')">
+                    New password is required
+                  </mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Confirm New Password</mat-label>
+                  <input matInput 
+                         [type]="hideConfirmPassword ? 'password' : 'text'" 
+                         formControlName="confirmPassword" 
+                         placeholder="Confirm new password">
+                  <button mat-icon-button matSuffix (click)="hideConfirmPassword = !hideConfirmPassword" type="button">
+                    <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  </button>
+                  <mat-error *ngIf="passwordForm.get('confirmPassword')?.hasError('required')">
+                    Please confirm your password
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Password Requirements Checklist -->
+                <app-password-requirements [requirements]="passwordRequirements"></app-password-requirements>
+
+                <div class="form-actions">
+                  <button mat-raised-button 
+                          color="primary" 
+                          (click)="changePassword()"
+                          [disabled]="passwordForm.invalid || saving">
+                    <mat-spinner diameter="20" *ngIf="saving"></mat-spinner>
+                    <span *ngIf="!saving">Change Password</span>
+                  </button>
+                </div>
+              </form>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- Trading Preferences Tab -->
+      <mat-tab label="Trading Preferences">
+        <div class="tab-content">
+          <mat-card class="form-card">
+            <mat-card-header>
+              <mat-card-title>Trading Preferences</mat-card-title>
+              <mat-card-subtitle>Customize your default trading parameters</mat-card-subtitle>
+            </mat-card-header>
+            
+            <mat-card-content>
+              <form [formGroup]="preferencesForm" class="preferences-form">
+                
+                <!-- Default Analysis Period -->
+                <div class="slider-section">
+                  <h3>Default Analysis Period: {{ preferencesForm.get('default_days')?.value }} days</h3>
+                  <mat-slider min="30" max="1095" step="30">
+                    <input matSliderThumb formControlName="default_days">
+                  </mat-slider>
+                  <div class="slider-marks">
+                    <span>30d</span>
+                    <span>1y</span>
+                    <span>2y</span>
+                    <span>3y</span>
+                  </div>
+                </div>
+
+                <mat-divider></mat-divider>
+
+                <!-- ATR Period -->
+                <div class="slider-section">
+                  <h3>ATR Period: {{ preferencesForm.get('default_atr_period')?.value }}</h3>
+                  <mat-slider min="5" max="50" step="1">
+                    <input matSliderThumb formControlName="default_atr_period">
+                  </mat-slider>
+                  <div class="slider-marks">
+                    <span>5</span>
+                    <span>14</span>
+                    <span>30</span>
+                    <span>50</span>
+                  </div>
+                </div>
+
+                <!-- ATR Multiplier -->
+                <div class="slider-section">
+                  <h3>ATR Multiplier: {{ preferencesForm.get('default_atr_multiplier')?.value }}</h3>
+                  <mat-slider min="0.5" max="5.0" step="0.1">
+                    <input matSliderThumb formControlName="default_atr_multiplier">
+                  </mat-slider>
+                  <div class="slider-marks">
+                    <span>0.5</span>
+                    <span>2.0</span>
+                    <span>5.0</span>
+                  </div>
+                </div>
+
+                <mat-divider></mat-divider>
+
+                <!-- MA Type -->
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Default MA Type</mat-label>
+                  <mat-select formControlName="default_ma_type">
+                    <mat-option value="ema">EMA (Exponential Moving Average)</mat-option>
+                    <mat-option value="sma">SMA (Simple Moving Average)</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <!-- Initial Capital -->
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Default Initial Capital</mat-label>
+                  <input matInput type="number" formControlName="default_initial_capital" placeholder="100000">
+                  <span matPrefix>$&nbsp;</span>
+                  <mat-hint>Starting capital for backtesting</mat-hint>
+                </mat-form-field>
+
+                <!-- Mean Reversion Threshold -->
+                <div class="slider-section">
+                  <h3>Mean Reversion Threshold: {{ preferencesForm.get('mean_reversion_threshold')?.value }}%</h3>
+                  <mat-slider min="3" max="15" step="0.5">
+                    <input matSliderThumb formControlName="mean_reversion_threshold">
+                  </mat-slider>
+                  <div class="slider-marks">
+                    <span>3%</span>
+                    <span>7%</span>
+                    <span>10%</span>
+                    <span>15%</span>
+                  </div>
+                </div>
+
+                <!-- Position Sizing -->
+                <div class="slider-section">
+                  <h3>Position Sizing: {{ preferencesForm.get('position_sizing_percentage')?.value }}% of capital per trade</h3>
+                  <mat-slider min="1" max="20" step="0.5">
+                    <input matSliderThumb formControlName="position_sizing_percentage">
+                  </mat-slider>
+                  <div class="slider-marks">
+                    <span>1%</span>
+                    <span>5%</span>
+                    <span>10%</span>
+                    <span>15%</span>
+                    <span>20%</span>
+                  </div>
+                  <p class="slider-hint">Recommended: 1-5% for conservative, 5-10% for moderate, 10-20% for aggressive</p>
+                </div>
+
+                <div class="form-actions">
+                  <button mat-button 
+                          color="warn"
+                          (click)="resetPreferencesToDefault()"
+                          [disabled]="saving">
+                    Reset to Defaults
+                  </button>
+                  <button mat-raised-button 
+                          color="accent" 
+                          (click)="updatePreferences()"
+                          [disabled]="preferencesForm.invalid || saving">
+                    <mat-spinner diameter="20" *ngIf="saving"></mat-spinner>
+                    <span *ngIf="!saving">Save Preferences</span>
+                  </button>
+                </div>
+              </form>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- Column Preferences Tab -->
+      <mat-tab label="Column Preferences">
+        <div class="tab-content">
+          <mat-card class="form-card">
+            <mat-card-header>
+              <mat-card-title>Trades Table Column Preferences</mat-card-title>
+              <mat-card-subtitle>Select which columns to display in the trades table</mat-card-subtitle>
+            </mat-card-header>
+            
+            <mat-card-content>
+              <div class="columns-grid">
+                <mat-checkbox 
+                  *ngFor="let column of columnOptions" 
+                  [checked]="tradesColumns[column.key]"
+                  (change)="onColumnChange(column.key, $event)">
+                  {{ column.label }}
+                </mat-checkbox>
+              </div>
+
+              <div class="form-actions">
+                <button mat-raised-button 
+                        color="accent" 
+                        (click)="updateColumnPreferences()"
+                        [disabled]="saving">
+                  <mat-spinner diameter="20" *ngIf="saving"></mat-spinner>
+                  <span *ngIf="!saving">Save Column Preferences</span>
+                </button>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </mat-tab>
+
+    </mat-tab-group>
+  </div>
+</div>

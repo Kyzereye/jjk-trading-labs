@@ -1,0 +1,357 @@
+// Paper Dashboard - About/FAQ Page
+.about-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 30px 15px;
+}
+
+.about-header {
+  text-align: center;
+  margin-bottom: 40px;
+  
+  h1 {
+    color: #66615b;
+    margin: 0 0 10px 0;
+    font-size: 32px;
+    font-weight: 300;
+    font-family: 'Roboto', sans-serif;
+  }
+  
+  .subtitle {
+    color: #9a9a9a;
+    font-size: 16px;
+    font-weight: 300;
+    margin: 0;
+  }
+}
+
+.about-content {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+// Introduction Card
+.intro-card {
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+  border-left: 4px solid #51cbce;
+  
+  mat-card-content {
+    padding: 25px;
+  }
+  
+  .intro-text {
+    font-size: 15px;
+    line-height: 1.8em;
+    color: #66615b;
+    font-weight: 300;
+    margin: 0;
+  }
+}
+
+// Methodology Cards
+.methodology-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.method-card {
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+  
+  mat-card-header {
+    padding: 25px 25px 20px;
+    border-bottom: 1px solid #dddddd;
+    
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 22px;
+      font-weight: 300;
+      color: #66615b;
+      margin: 0;
+      
+      mat-icon {
+        color: #51cbce;
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+      }
+    }
+  }
+  
+  mat-card-content {
+    padding: 25px;
+    
+    h3 {
+      color: #66615b;
+      font-size: 18px;
+      font-weight: 400;
+      margin: 0 0 15px 0;
+    }
+    
+    h4 {
+      color: #66615b;
+      font-size: 15px;
+      font-weight: 400;
+      margin: 20px 0 12px 0;
+    }
+    
+    p {
+      font-size: 14px;
+      line-height: 1.7em;
+      color: #66615b;
+      font-weight: 300;
+      margin: 0 0 15px 0;
+    }
+    
+    .method-summary {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      border-left: 3px solid #51cbce;
+      font-style: italic;
+    }
+  }
+}
+
+// Strategy Points
+.strategy-points {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin: 20px 0;
+  
+  .point {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      margin-top: 2px;
+      
+      &.success {
+        color: #6bd098;
+      }
+      
+      &.error {
+        color: #ef8157;
+      }
+      
+      &.accent {
+        color: #fbc658;
+      }
+    }
+    
+    div {
+      flex: 1;
+      font-size: 14px;
+      line-height: 1.6em;
+      color: #66615b;
+      
+      strong {
+        font-weight: 500;
+        color: #495057;
+      }
+    }
+  }
+}
+
+// Turtle Principles
+.turtle-principles {
+  margin: 20px 0;
+  
+  h4 {
+    margin-bottom: 15px;
+  }
+  
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    
+    li {
+      padding: 12px 15px;
+      margin-bottom: 10px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      border-left: 3px solid #6bd098;
+      font-size: 14px;
+      line-height: 1.6em;
+      color: #66615b;
+      font-weight: 300;
+      
+      strong {
+        font-weight: 500;
+        color: #495057;
+      }
+    }
+  }
+}
+
+// Wyckoff Phases
+.wyckoff-phases {
+  margin: 20px 0;
+  
+  h4 {
+    margin-bottom: 15px;
+  }
+}
+
+.phase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.phase-item {
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border: 2px solid #dee2e6;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  
+  &.markup {
+    background-color: #e8f5e9;
+    border-color: #6bd098;
+    
+    .phase-number {
+      background-color: #6bd098;
+      color: #ffffff;
+    }
+  }
+  
+  .phase-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #9a9a9a;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  
+  .phase-content {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.6em;
+    color: #66615b;
+    font-weight: 300;
+    
+    strong {
+      font-weight: 500;
+      color: #495057;
+      display: block;
+      margin-bottom: 5px;
+    }
+  }
+}
+
+// FAQ Card
+.faq-card {
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+  
+  mat-card-header {
+    padding: 25px 25px 20px;
+    border-bottom: 1px solid #dddddd;
+    
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 22px;
+      font-weight: 300;
+      color: #66615b;
+      
+      mat-icon {
+        color: #fbc658;
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+      }
+    }
+  }
+  
+  mat-card-content {
+    padding: 25px;
+  }
+}
+
+mat-expansion-panel {
+  background-color: #ffffff;
+  box-shadow: none;
+  border: 1px solid #dddddd;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  
+  &:before {
+    display: none;
+  }
+  
+  mat-panel-title {
+    font-size: 14px;
+    font-weight: 400;
+    color: #66615b;
+  }
+  
+  p {
+    font-size: 14px;
+    line-height: 1.7em;
+    color: #66615b;
+    font-weight: 300;
+    margin: 15px 0;
+  }
+}
+
+.mat-expansion-panel-header {
+  padding: 15px 20px;
+  
+  &:hover {
+    background-color: #f8f9fa;
+  }
+}
+
+.mat-expansion-panel-body {
+  padding: 0 20px 15px;
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .about-container {
+    padding: 20px 15px;
+  }
+  
+  .about-header h1 {
+    font-size: 26px;
+  }
+  
+  .phase-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .method-card mat-card-content {
+    padding: 20px 15px;
+  }
+}
+

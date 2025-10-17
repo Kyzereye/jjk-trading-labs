@@ -1,0 +1,28 @@
+{
+  "name": "jjktradinglabs-data-scripts",
+  "version": "1.0.0",
+  "description": "Stock data fetching scripts for JJK Trading Labs",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "fetch-3year": "ts-node src/scripts/fetch-3year-data.ts",
+    "update-daily": "ts-node src/scripts/update-stock-data.ts",
+    "expand-historical": "ts-node src/scripts/expand-historical-data.ts"
+  },
+  "dependencies": {
+    "mysql2": "^3.6.0",
+    "yahoo-finance2": "^2.11.0",
+    "dotenv": "^16.3.0",
+    "csv-writer": "^1.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0",
+    "@types/node": "^20.0.0"
+  },
+  "keywords": ["stocks", "data", "fetching", "yfinance", "mysql"],
+  "author": "JJK Trading Labs",
+  "license": "MIT"
+}

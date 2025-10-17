@@ -1,0 +1,286 @@
+<div class="ema-trading-container">
+  <h1>Moving Average Trading System</h1>
+  <p class="subtitle">
+    Simple {{ analysisForm.get('maType')?.value?.toUpperCase() }} Strategy: 
+    BUY when price closes above 50 {{ analysisForm.get('maType')?.value?.toUpperCase() }}, 
+    SELL when price closes below 21 {{ analysisForm.get('maType')?.value?.toUpperCase() }}
+  </p>
+
+  <!-- Analysis Form -->
+  <mat-card class="analysis-form-card">
+    <mat-card-content>
+      <form [formGroup]="analysisForm" class="analysis-form">
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Stock Symbol</mat-label>
+            <input matInput 
+                   formControlName="symbol" 
+                   placeholder="e.g., AAPL"
+                   [matAutocomplete]="auto">
+            <mat-autocomplete #auto="matAutocomplete">
+              <mat-option *ngFor="let symbol of filteredSymbols" [value]="symbol">
+                {{ symbol }}
+              </mat-option>
+            </mat-autocomplete>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Days to Analyze</mat-label>
+            <input matInput 
+                   type="number" 
+                   formControlName="days"
+                   placeholder="365">
+            <mat-hint>0 = All available data</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>ATR Multiplier</mat-label>
+            <input matInput 
+                   type="number" 
+                   formControlName="atrMultiplier"
+                   step="0.1"
+                   min="0.5"
+                   max="5.0">
+            <mat-hint>Stop loss = ATR × Multiplier</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Moving Average Type</mat-label>
+            <mat-select formControlName="maType">
+              <mat-option value="ema">EMA (Exponential)</mat-option>
+              <mat-option value="sma">SMA (Simple)</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Mean Reversion Threshold</mat-label>
+            <input matInput 
+                   type="number" 
+                   formControlName="meanReversionThreshold"
+                   step="0.5"
+                   min="3"
+                   max="15">
+            <mat-hint>Alert when price is X% above 21-MA</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <div class="form-actions">
+          <button mat-raised-button 
+                  color="primary" 
+                  (click)="runAnalysis()"
+                  [disabled]="analysisForm.invalid || loading"
+                  class="analyze-button">
+            <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+            <span *ngIf="!loading">Run Analysis</span>
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Results -->
+  <div *ngIf="results" class="results-container">
+    <!-- Performance Summary -->
+    <mat-card class="performance-summary">
+      <mat-card-header>
+        <div class="summary-header">
+          <div>
+            <mat-card-title>Performance Summary - {{ results.symbol }}</mat-card-title>
+            <mat-card-subtitle>
+              Period: {{ results.start_date | date:'shortDate' }} to {{ results.end_date | date:'shortDate' }}
+              ({{ results.total_days }} days)
+            </mat-card-subtitle>
+          </div>
+          <button mat-icon-button 
+                  (click)="toggleFavorite()"
+                  matTooltip="{{ isInFavorites(results.symbol) ? 'Remove from favorites' : 'Add to favorites' }}"
+                  class="favorite-button"
+                  [class.favorited]="isInFavorites(results.symbol)">
+            <mat-icon>{{ isInFavorites(results.symbol) ? 'star' : 'star_border' }}</mat-icon>
+          </button>
+        </div>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="metrics-grid">
+          <div class="metric-item">
+            <div class="metric-value" [ngClass]="getPerformanceColor(results.performance_metrics.total_return_percent)">
+              {{ formatPercent(results.performance_metrics.total_return_percent) }}
+            </div>
+            <div class="metric-label">Total Return</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-value" [ngClass]="getPerformanceColor(results.performance_metrics.total_pnl)">
+              {{ formatCurrency(results.performance_metrics.total_pnl) }}
+            </div>
+            <div class="metric-label">Total P&L</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-value">
+              {{ results.performance_metrics.total_trades }}
+            </div>
+            <div class="metric-label">Total Trades</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-value" [ngClass]="getPerformanceColor(results.performance_metrics.win_rate - 50)">
+              {{ formatPercent(results.performance_metrics.win_rate) }}
+            </div>
+            <div class="metric-label">Win Rate</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Tabs -->
+    <mat-card class="results-tabs">
+      <mat-tab-group (selectedTabChange)="onTabChange($event.index)">
+        <mat-tab label="Trades">
+          <div class="tab-content">
+            <mat-table [dataSource]="results.trades" class="trades-table">
+              <ng-container matColumnDef="entry_date">
+                <mat-header-cell *matHeaderCellDef>Entry Date</mat-header-cell>
+                <mat-cell *matCellDef="let trade">{{ trade.entry_date | date:'shortDate' }}</mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="exit_date">
+                <mat-header-cell *matHeaderCellDef>Exit Date</mat-header-cell>
+                <mat-cell *matCellDef="let trade">{{ trade.exit_date | date:'shortDate' }}</mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="entry_price">
+                <mat-header-cell *matHeaderCellDef>Entry Price</mat-header-cell>
+                <mat-cell *matCellDef="let trade">{{ formatCurrency(trade.entry_price) }}</mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="exit_price">
+                <mat-header-cell *matHeaderCellDef>Exit Price</mat-header-cell>
+                <mat-cell *matCellDef="let trade">{{ formatCurrency(trade.exit_price || 0) }}</mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="pnl">
+                <mat-header-cell *matHeaderCellDef>P&L</mat-header-cell>
+                <mat-cell *matCellDef="let trade">
+                  <span class="pnl-value" [ngClass]="getPnLClass(trade.pnl || 0)">
+                    {{ formatCurrency(trade.pnl || 0) }}
+                  </span>
+                </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="pnl_percent">
+                <mat-header-cell *matHeaderCellDef>P&L %</mat-header-cell>
+                <mat-cell *matCellDef="let trade">
+                  <span class="pnl-value" [ngClass]="getPnLClass(trade.pnl_percent || 0)">
+                    {{ formatPercent(trade.pnl_percent || 0) }}
+                  </span>
+                </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="exit_reason">
+                <mat-header-cell *matHeaderCellDef>Exit Reason</mat-header-cell>
+                <mat-cell *matCellDef="let trade">{{ trade.exit_reason || 'N/A' }}</mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="shares">
+                <mat-header-cell *matHeaderCellDef>Shares</mat-header-cell>
+                <mat-cell *matCellDef="let trade">{{ trade.shares || 0 }}</mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="running_pnl">
+                <mat-header-cell *matHeaderCellDef>Running P&L</mat-header-cell>
+                <mat-cell *matCellDef="let trade">
+                  <span class="pnl-value" [ngClass]="getPnLClass(trade.running_pnl || 0)">
+                    {{ formatCurrency(trade.running_pnl || 0) }}
+                  </span>
+                </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="running_capital">
+                <mat-header-cell *matHeaderCellDef>Running Capital</mat-header-cell>
+                <mat-cell *matCellDef="let trade">{{ formatCurrency(trade.running_capital || 0) }}</mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="drawdown">
+                <mat-header-cell *matHeaderCellDef>Drawdown</mat-header-cell>
+                <mat-cell *matCellDef="let trade">
+                  <span class="pnl-value pnl-negative">
+                    {{ formatPercent(trade.drawdown || 0) }}
+                  </span>
+                </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="duration">
+                <mat-header-cell *matHeaderCellDef>Duration</mat-header-cell>
+                <mat-cell *matCellDef="let trade">{{ trade.duration || trade.duration_days || 0 }} days</mat-cell>
+              </ng-container>
+
+              <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+              <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+            </mat-table>
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Signals & Alerts">
+          <div class="tab-content">
+            <mat-table [dataSource]="combinedSignals" class="signals-table">
+              <ng-container matColumnDef="date">
+                <mat-header-cell *matHeaderCellDef>Date</mat-header-cell>
+                <mat-cell *matCellDef="let signal">{{ signal.date | date:'shortDate' }}</mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="signal_type">
+                <mat-header-cell *matHeaderCellDef>Type</mat-header-cell>
+                <mat-cell *matCellDef="let signal">
+                  <span class="signal-badge" 
+                        [ngClass]="{
+                          'buy-signal': signal.signal_type === 'BUY',
+                          'sell-signal': signal.signal_type === 'SELL',
+                          'alert-signal': signal.signal_type === 'ALERT'
+                        }">
+                    {{ signal.signal_type }}
+                  </span>
+                </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="price">
+                <mat-header-cell *matHeaderCellDef>Price</mat-header-cell>
+                <mat-cell *matCellDef="let signal">{{ formatCurrency(signal.price) }}</mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="metric">
+                <mat-header-cell *matHeaderCellDef>Metric</mat-header-cell>
+                <mat-cell *matCellDef="let signal">
+                  <span *ngIf="signal.confidence !== null">
+                    <mat-progress-bar 
+                      mode="determinate" 
+                      [value]="signal.confidence * 100"
+                      class="confidence-bar">
+                    </mat-progress-bar>
+                    <span class="confidence-text">{{ formatPercent(signal.confidence * 100) }}</span>
+                  </span>
+                  <span *ngIf="signal.distance_percent !== null" class="distance-badge">
+                    {{ formatPercent(signal.distance_percent) }} above MA
+                  </span>
+                </mat-cell>
+              </ng-container>
+
+              <ng-container matColumnDef="reasoning">
+                <mat-header-cell *matHeaderCellDef>Reasoning</mat-header-cell>
+                <mat-cell *matCellDef="let signal">{{ signal.reasoning }}</mat-cell>
+              </ng-container>
+
+              <mat-header-row *matHeaderRowDef="['date', 'signal_type', 'price', 'metric', 'reasoning']"></mat-header-row>
+              <mat-row *matRowDef="let row; columns: ['date', 'signal_type', 'price', 'metric', 'reasoning'];"></mat-row>
+            </mat-table>
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Chart">
+          <div class="tab-content">
+            <h3>EMA Trading Chart</h3>
+            <p>Interactive chart showing price action, EMA lines, and buy/sell signals</p>
+            <div #chartContainer class="chart-container"></div>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </mat-card>
+  </div>
+</div>

@@ -1,0 +1,41 @@
+<div class="app-container">
+  <!-- Navigation Bar -->
+  <mat-toolbar color="primary" *ngIf="isAuthenticated">
+    <mat-icon>trending_up</mat-icon>
+    <span class="app-title">{{ title }}</span>
+    <span class="spacer"></span>
+    <span class="user-welcome" *ngIf="user">Welcome, {{ user.name }}</span>
+    
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" *ngIf="user">
+      <mat-icon>account_circle</mat-icon>
+    </button>
+    
+    <mat-menu #userMenu="matMenu">
+      <button mat-menu-item routerLink="/profile">
+        <mat-icon>person</mat-icon>
+        <span>Profile & Settings</span>
+      </button>
+      <button mat-menu-item routerLink="/about">
+        <mat-icon>info</mat-icon>
+        <span>About & FAQ</span>
+      </button>
+      <button mat-menu-item (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Logout</span>
+      </button>
+    </mat-menu>
+  </mat-toolbar>
+
+  <!-- Navigation Tabs -->
+  <mat-tab-group *ngIf="isAuthenticated" class="nav-tabs" [(selectedIndex)]="selectedTabIndex" (selectedIndexChange)="onTabChange($event)">
+    <mat-tab label="Dashboard"></mat-tab>
+    <mat-tab label="Trading Analysis"></mat-tab>
+    <mat-tab label="MA Optimization"></mat-tab>
+    <mat-tab label="Top Performers"></mat-tab>
+  </mat-tab-group>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <router-outlet></router-outlet>
+  </div>
+</div>

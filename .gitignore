@@ -1,0 +1,129 @@
+# JJK Trading Labs - Git Ignore File
+
+# Environment Variables (CRITICAL - contains secrets)
+.env
+.env.local
+.env.*.local
+*.env
+
+# Node.js Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+package-lock.json
+
+# Build Output
+dist/
+build/
+*.js.map
+*.d.ts.map
+
+# TypeScript Cache
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# IDE / Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vs/
+
+# Angular Specific
+/.angular/
+/frontend/.angular/
+/frontend/dist/
+/frontend/.sass-cache/
+/frontend/connect.lock
+/frontend/coverage/
+/frontend/libpeerconnection.log
+/frontend/testem.log
+/frontend/typings/
+
+# Backend Compiled Files
+/backend/dist/
+/backend/*.js
+/backend/*.d.ts
+/backend/*.js.map
+/backend/*.d.ts.map
+/backend/controllers/*.js
+/backend/controllers/*.d.ts
+/backend/middleware/*.js
+/backend/middleware/*.d.ts
+/backend/services/*.js
+/backend/services/*.d.ts
+/backend/utils/*.js
+/backend/utils/*.d.ts
+
+# CSV Files (data backups - not needed in Git)
+/get_stock_data/csv_files/
+*.csv
+
+# Database Files
+*.sqlite
+*.sqlite3
+*.db
+
+# Temporary SQL Scripts
+/backend/test_*.sql
+/backend/check_*.sql
+/backend/fix_*.sql
+/backend/diagnose_*.sql
+/backend/reset_database.sql
+
+# Documentation (temporary files)
+CORS_FIX_SUMMARY.md
+MEAN_REVERSION_SIGNALS_UPDATE.md
+TOP_PERFORMERS_IMPLEMENTATION.md
+
+# Test Coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Misc
+*.pid
+*.seed
+*.pid.lock
+.npm
+.eslintcache
+.node_repl_history
+.yarn-integrity
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
