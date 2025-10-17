@@ -15,6 +15,10 @@
         <mat-icon>person</mat-icon>
         <span>Profile & Settings</span>
       </button>
+      <button mat-menu-item routerLink="/symbol-management">
+        <mat-icon>inventory_2</mat-icon>
+        <span>Manage Symbols</span>
+      </button>
       <button mat-menu-item routerLink="/about">
         <mat-icon>info</mat-icon>
         <span>About & FAQ</span>
@@ -27,7 +31,7 @@
   </mat-toolbar>
 
   <!-- Navigation Tabs -->
-  <mat-tab-group *ngIf="isAuthenticated" class="nav-tabs" [(selectedIndex)]="selectedTabIndex" (selectedIndexChange)="onTabChange($event)">
+  <mat-tab-group *ngIf="isAuthenticated" class="nav-tabs" [selectedIndex]="selectedTabIndex" (selectedIndexChange)="onTabChange($event)">
     <mat-tab label="Dashboard"></mat-tab>
     <mat-tab label="Trading Analysis"></mat-tab>
     <mat-tab label="MA Optimization"></mat-tab>

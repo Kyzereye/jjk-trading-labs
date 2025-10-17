@@ -54,12 +54,14 @@ export class AppComponent implements OnInit {
         this.selectedTabIndex = 3;
         break;
       default:
-        this.selectedTabIndex = 0;
+        // Don't change tab index for routes not in the tab bar
+        // (e.g., /profile, /symbol-management, /about)
         break;
     }
   }
 
   onTabChange(index: number) {
+    // User clicked a tab, navigate to corresponding route
     switch (index) {
       case 0:
         this.router.navigate(['/dashboard']);

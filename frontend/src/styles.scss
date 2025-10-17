@@ -377,3 +377,85 @@ input.mat-mdc-input-element {
 .fade-in {
   animation: fadeIn 0.3s ease-in;
 }
+
+/* Autocomplete Panel - Global */
+.mat-mdc-autocomplete-panel {
+  background-color: #ffffff;
+  border: 1px solid #dddddd;
+  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+.mat-mdc-option {
+  color: #66615b;
+  font-size: 14px;
+  font-weight: 300;
+}
+
+.mat-mdc-option:hover {
+  background-color: #f4f3ef;
+}
+
+.mat-mdc-option.mat-mdc-option-active,
+.mat-mdc-option.mat-selected {
+  background-color: rgba(81, 203, 206, 0.1);
+  color: #51cbce;
+  font-weight: 400;
+}
+
+/* Icon Button in Form Fields */
+.mat-mdc-form-field button.mat-mdc-icon-button {
+  background-color: transparent;
+}
+
+.mat-mdc-form-field button.mat-mdc-icon-button .mat-mdc-button-persistent-ripple,
+.mat-mdc-form-field button.mat-mdc-icon-button .mat-mdc-button-ripple {
+  opacity: 0;
+}
+
+.mat-mdc-form-field button.mat-mdc-icon-button:hover {
+  background-color: rgba(81, 203, 206, 0.1);
+}
+
+/* Paginator - Global */
+.mat-mdc-paginator {
+  background-color: #ffffff;
+  color: #66615b;
+  border-top: 1px solid #dddddd;
+}
+
+.mat-mdc-paginator-page-size-label,
+.mat-mdc-paginator-range-label {
+  color: #9a9a9a;
+  font-weight: 300;
+}
+
+.mat-mdc-paginator .mat-mdc-icon-button {
+  color: #66615b;
+}
+
+.mat-mdc-paginator .mat-mdc-icon-button[disabled] {
+  color: #d3d3d3;
+}
+
+/* Snackbar - Global */
+.snackbar-success .mdc-snackbar__surface {
+  background-color: #6bd098 !important;
+}
+
+.snackbar-success .mat-mdc-snack-bar-label {
+  color: white !important;
+}
+
+.snackbar-error .mdc-snackbar__surface {
+  background-color: #ef8157 !important;
+}
+
+.snackbar-error .mat-mdc-snack-bar-label {
+  color: white !important;
+}
+
+/* Spinner Color */
+mat-spinner circle {
+  stroke: #51cbce;
+}

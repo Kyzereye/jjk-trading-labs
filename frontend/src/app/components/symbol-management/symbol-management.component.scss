@@ -1,0 +1,234 @@
+// Paper Dashboard - Symbol Management
+.symbol-management-container {
+  padding: 30px 15px;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  .header {
+    margin-bottom: 30px;
+
+    h1 {
+      color: #66615b;
+      font-size: 28px;
+      font-weight: 300;
+      margin: 0 0 10px 0;
+      font-family: 'Roboto', sans-serif;
+    }
+
+    .subtitle {
+      color: #9a9a9a;
+      font-size: 14px;
+      font-weight: 300;
+      margin: 0;
+    }
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    .search-field {
+      flex: 0 1 500px;
+    }
+
+    button {
+      height: 56px;
+      margin-top: 1px; // Align with input box (accounting for label height)
+      background-color: #51cbce;
+      color: #ffffff;
+      box-shadow: 0 5px 20px 0px rgba(0, 0, 0, 0.2), 
+                  0 13px 24px -11px rgba(81, 203, 206, 0.6);
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+
+      mat-icon {
+        margin-right: 8px;
+      }
+
+      &:hover:not([disabled]) {
+        background-color: #3ab5b8;
+        box-shadow: 0 14px 26px -12px rgba(81, 203, 206, 0.42), 
+                    0 4px 23px 0px rgba(0, 0, 0, 0.12), 
+                    0 8px 10px -5px rgba(81, 203, 206, 0.2);
+        transform: translateY(-2px);
+      }
+
+      &[disabled] {
+        background-color: #d3d3d3;
+        color: #999;
+        box-shadow: none;
+      }
+    }
+  }
+
+  .table-container {
+    background-color: #ffffff;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+
+    .symbols-table {
+      width: 100%;
+      background-color: transparent;
+
+      th {
+        background-color: #f4f3ef;
+        color: #66615b;
+        font-weight: 400;
+        font-size: 0.75em;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 12px;
+
+        &.actions-header {
+          text-align: right;
+          padding-right: 24px;
+        }
+      }
+
+      td {
+        color: #66615b;
+        font-size: 0.9em;
+        padding: 12px;
+        border-bottom: 1px solid #f4f3ef;
+
+        &.actions-cell {
+          text-align: right;
+          padding-right: 16px;
+        }
+      }
+
+      tr.mat-row {
+        transition: background-color 0.2s;
+
+        &:hover {
+          background-color: #fafafa;
+        }
+      }
+
+      .symbol-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        background-color: #51cbce;
+        color: #ffffff;
+        border-radius: 4px;
+        font-weight: 500;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+      }
+
+      .no-data {
+        text-align: center;
+        padding: 60px 24px !important;
+        border-bottom: none !important;
+
+        .no-data-message {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 15px;
+
+          mat-icon {
+            font-size: 64px;
+            width: 64px;
+            height: 64px;
+            color: #fbc658;
+            opacity: 0.5;
+          }
+
+          p {
+            margin: 0;
+            color: #66615b;
+            font-weight: 300;
+
+            &:first-of-type {
+              font-size: 18px;
+              font-weight: 400;
+            }
+
+            &.hint {
+              font-size: 14px;
+              color: #9a9a9a;
+            }
+          }
+        }
+      }
+    }
+
+  }
+
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 24px;
+    gap: 24px;
+    background-color: #ffffff;
+    border-radius: 6px;
+    box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+
+    p {
+      color: #9a9a9a;
+      font-size: 16px;
+      font-weight: 300;
+      margin: 0;
+    }
+
+    mat-spinner {
+      color: #51cbce;
+    }
+  }
+
+  // Button styling in table
+  button.mat-icon-button {
+    &.mat-primary {
+      color: #51cbce;
+
+      &:hover {
+        background-color: rgba(81, 203, 206, 0.1);
+      }
+    }
+
+    &.mat-warn {
+      color: #ef8157;
+
+      &:hover {
+        background-color: rgba(239, 129, 87, 0.1);
+      }
+    }
+  }
+}
+
+
+// Responsive
+@media (max-width: 768px) {
+  .symbol-management-container {
+    padding: 20px 10px;
+
+    .header h1 {
+      font-size: 24px;
+    }
+
+    .toolbar {
+      flex-direction: column;
+      align-items: stretch;
+
+      .search-field,
+      button {
+        width: 100%;
+        max-width: none;
+      }
+    }
+
+    .symbols-table {
+      th, td {
+        padding: 8px 4px;
+        font-size: 11px;
+      }
+    }
+  }
+}

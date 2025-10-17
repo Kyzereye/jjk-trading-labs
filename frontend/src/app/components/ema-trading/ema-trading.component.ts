@@ -5,7 +5,9 @@ import { filter } from 'rxjs/operators';
 import { ApiService, EMAAnalysisRequest, EMAAnalysisResponse } from '../../services/api.service';
 import { ChartService } from '../../services/chart.service';
 import { AuthService } from '../../services/auth.service';
+import { SymbolAutocompleteService } from '../../services/symbol-autocomplete.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-ema-trading',
@@ -16,8 +18,7 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
   @ViewChild('chartContainer', { static: false }) chartContainer!: ElementRef;
 
   analysisForm: FormGroup;
-  availableSymbols: string[] = [];
-  filteredSymbols: string[] = [];
+  filteredSymbols!: Observable<string[]>;
   loading = false;
   results: EMAAnalysisResponse | null = null;
   stockData: any[] = [];
@@ -34,7 +35,8 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private snackBar: MatSnackBar,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private symbolAutocompleteService: SymbolAutocompleteService
   ) {
     this.analysisForm = this.fb.group({
       symbol: ['', Validators.required],
@@ -46,7 +48,7 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.loadSymbols();
+    this.setupSymbolAutocomplete();
     this.setUserPreferences();
     this.updateDisplayedColumns();
     this.loadFavorites();
@@ -62,7 +64,6 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
         }, 500);
       }
     });
-    this.setupSymbolAutocomplete();
     
     // Listen for navigation to this route to refresh preferences
     this.router.events
@@ -80,30 +81,10 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
     this.chartService.destroyChart();
   }
 
-  private loadSymbols(): void {
-    this.apiService.getSymbols().subscribe({
-      next: (response) => {
-        this.availableSymbols = response.symbols;
-        this.filteredSymbols = response.symbols;
-      },
-      error: (error) => {
-        console.error('Failed to load symbols:', error);
-      }
-    });
-  }
-
   private setupSymbolAutocomplete(): void {
-    this.analysisForm.get('symbol')?.valueChanges.subscribe(value => {
-      if (value && typeof value === 'string') {
-        const filterValue = value.toUpperCase();
-        // Only show symbols that START with the typed letters
-        this.filteredSymbols = this.availableSymbols.filter(symbol => 
-          symbol.startsWith(filterValue)
-        );
-      } else {
-        this.filteredSymbols = this.availableSymbols;
-      }
-    });
+    this.filteredSymbols = this.symbolAutocompleteService.setupAutocomplete(
+      this.analysisForm.get('symbol') as any
+    );
   }
 
   private setUserPreferences(): void {

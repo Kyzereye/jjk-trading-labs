@@ -1,0 +1,41 @@
+<h2 mat-dialog-title>{{ title }}</h2>
+
+<mat-dialog-content>
+  <form>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Stock Symbol</mat-label>
+      <input
+        matInput
+        [(ngModel)]="symbol"
+        name="symbol"
+        placeholder="e.g., AAPL"
+        maxlength="10"
+        [style.text-transform]="'uppercase'"
+        required>
+      <mat-hint>Enter the stock ticker symbol (1-10 characters)</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Company Name</mat-label>
+      <input
+        matInput
+        [(ngModel)]="companyName"
+        name="companyName"
+        placeholder="e.g., Apple Inc."
+        maxlength="200"
+        required>
+      <mat-hint>Enter the full company name</mat-hint>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Cancel</button>
+  <button
+    mat-raised-button
+    color="primary"
+    (click)="onSubmit()"
+    [disabled]="!isValid()">
+    {{ submitLabel }}
+  </button>
+</mat-dialog-actions>

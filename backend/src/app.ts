@@ -76,6 +76,10 @@ app.use('/api/optimization', optimizationRoutes);
 import tradesRoutes from './controllers/trades.controller';
 app.use('/api/trades', tradesRoutes);
 
+// Stock symbols management routes
+import symbolsRoutes from './routes/symbols.routes';
+app.use('/api/symbols/manage', symbolsRoutes);
+
 // Symbols endpoint (no auth required)
 app.get('/api/symbols', async (req, res) => {
   try {

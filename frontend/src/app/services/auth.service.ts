@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpBackend } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
@@ -43,34 +43,49 @@ export class AuthService {
   public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
   public user$ = this.userSubject.asObservable();
 
+  private httpWithoutInterceptor: HttpClient;
+
   constructor(
     private http: HttpClient,
+    private httpBackend: HttpBackend,
     private router: Router
   ) {
+    // Create HttpClient that bypasses interceptors to avoid circular dependency
+    this.httpWithoutInterceptor = new HttpClient(httpBackend);
     this.initializeAuth();
   }
 
   private initializeAuth() {
-    const token = localStorage.getItem(this.TOKEN_KEY);
+    const token = sessionStorage.getItem(this.TOKEN_KEY);
     if (token) {
-      this.getProfile().subscribe({
+      // Use httpWithoutInterceptor with manual auth header to avoid circular dependency
+      this.httpWithoutInterceptor.get<{ success: boolean; user: User }>(
+        `${this.API_URL}/auth/profile`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      ).subscribe({
         next: (response) => {
           this.isAuthenticatedSubject.next(true);
           this.userSubject.next(response.user);
         },
         error: () => {
-          this.logout();
+          // Clear invalid token
+          sessionStorage.removeItem(this.TOKEN_KEY);
+          this.isAuthenticatedSubject.next(false);
+          this.userSubject.next(null);
         }
       });
     }
   }
 
   login(credentials: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.API_URL}/auth/login`, credentials)
+    // Use httpWithoutInterceptor to avoid circular dependency
+    return this.httpWithoutInterceptor.post<AuthResponse>(`${this.API_URL}/auth/login`, credentials)
       .pipe(
         tap(response => {
           if (response.success) {
-            localStorage.setItem(this.TOKEN_KEY, response.token);
+            sessionStorage.setItem(this.TOKEN_KEY, response.token);
             this.isAuthenticatedSubject.next(true);
             this.userSubject.next(response.user);
           }
@@ -119,14 +134,14 @@ export class AuthService {
   }
 
   logout() {
-    localStorage.removeItem(this.TOKEN_KEY);
+    sessionStorage.removeItem(this.TOKEN_KEY);
     this.isAuthenticatedSubject.next(false);
     this.userSubject.next(null);
     this.router.navigate(['/login']);
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
+    return sessionStorage.getItem(this.TOKEN_KEY);
   }
 
   isAuthenticated(): boolean {

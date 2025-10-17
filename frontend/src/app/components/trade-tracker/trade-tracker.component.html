@@ -1,7 +1,7 @@
 <div class="trade-tracker-container">
   <div class="header-section">
     <h2>Trade Tracker</h2>
-    <p class="subtitle">Track your real broker trades and monitor performance</p>
+    <p class="subtitle">Track your trades and monitor performance</p>
     <button mat-raised-button color="primary" (click)="showAddForm()" *ngIf="!showForm">
       <mat-icon>add</mat-icon>
       Add New Trade
@@ -247,11 +247,6 @@
     <mat-card-content>
       <mat-icon>receipt_long</mat-icon>
       <h3>No Trades Yet</h3>
-      <p>Start tracking your broker trades to monitor performance</p>
-      <button mat-raised-button color="primary" (click)="showAddForm()">
-        <mat-icon>add</mat-icon>
-        Add Your First Trade
-      </button>
     </mat-card-content>
   </mat-card>
 </div>

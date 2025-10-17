@@ -10,6 +10,7 @@ import { TopPerformersComponent } from './components/top-performers/top-performe
 import { UserProfileComponent } from './components/user-profile/user-profile.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { AboutComponent } from './components/about/about.component';
+import { SymbolManagementComponent } from './components/symbol-management/symbol-management.component';
 
 const routes: Routes = [
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
@@ -40,6 +41,11 @@ const routes: Routes = [
   {
     path: 'profile',
     component: UserProfileComponent,
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'symbol-management',
+    component: SymbolManagementComponent,
     canActivate: [AuthGuard]
   },
   { path: '**', redirectTo: '/trading' }

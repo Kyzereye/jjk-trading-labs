@@ -284,4 +284,43 @@ export class ApiService {
   getTradeStats(): Observable<any> {
     return this.http.get(`${this.API_URL}/trades/stats/summary`);
   }
+
+  // Stock Symbols Management
+  getStockSymbolsManagement(page: number = 1, limit: number = 50, search: string = ''): Observable<any> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('limit', limit.toString());
+    
+    if (search) {
+      params = params.set('search', search);
+    }
+
+    return this.http.get(`${this.API_URL}/symbols/manage`, { params });
+  }
+
+  getStockSymbolById(id: number): Observable<any> {
+    return this.http.get(`${this.API_URL}/symbols/manage/${id}`);
+  }
+
+  getStockSymbolUsage(id: number): Observable<any> {
+    return this.http.get(`${this.API_URL}/symbols/manage/${id}/usage`);
+  }
+
+  createStockSymbol(symbol: string, companyName: string): Observable<any> {
+    return this.http.post(`${this.API_URL}/symbols/manage`, {
+      symbol,
+      company_name: companyName
+    });
+  }
+
+  updateStockSymbol(id: number, symbol: string, companyName: string): Observable<any> {
+    return this.http.put(`${this.API_URL}/symbols/manage/${id}`, {
+      symbol,
+      company_name: companyName
+    });
+  }
+
+  deleteStockSymbol(id: number): Observable<any> {
+    return this.http.delete(`${this.API_URL}/symbols/manage/${id}`);
+  }
 }

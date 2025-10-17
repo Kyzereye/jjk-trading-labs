@@ -1,0 +1,83 @@
+// Paper Dashboard - Dialog Styling
+h2[mat-dialog-title] {
+  color: #66615b;
+  font-size: 22px;
+  font-weight: 300;
+  margin: 0 0 16px 0;
+  font-family: 'Roboto', sans-serif;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #dddddd;
+}
+
+mat-dialog-content {
+  padding: 20px 24px;
+  min-width: 400px;
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .full-width {
+      width: 100%;
+    }
+
+    mat-form-field {
+      width: 100%;
+    }
+
+    input {
+      color: #66615b;
+      font-weight: 300;
+    }
+  }
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+  gap: 12px;
+  border-top: 1px solid #dddddd;
+
+  button {
+    min-width: 90px;
+
+    &[mat-button] {
+      color: #66615b;
+      font-weight: 300;
+
+      &:hover {
+        background-color: #f4f3ef;
+      }
+    }
+
+    &[mat-raised-button][color="primary"] {
+      background-color: #51cbce;
+      color: #ffffff;
+      font-weight: 400;
+      box-shadow: 0 2px 2px 0 rgba(81, 203, 206, 0.14), 
+                  0 3px 1px -2px rgba(81, 203, 206, 0.2), 
+                  0 1px 5px 0 rgba(81, 203, 206, 0.12);
+
+      &:hover:not([disabled]) {
+        background-color: #3ab5b8;
+        box-shadow: 0 14px 26px -12px rgba(81, 203, 206, 0.42), 
+                    0 4px 23px 0px rgba(0, 0, 0, 0.12), 
+                    0 8px 10px -5px rgba(81, 203, 206, 0.2);
+      }
+
+      &[disabled] {
+        background-color: #d3d3d3;
+        color: #999;
+        box-shadow: none;
+      }
+    }
+
+    &[mat-button] {
+      color: #66615b;
+
+      &:hover {
+        background-color: #f4f3ef;
+      }
+    }
+  }
+}

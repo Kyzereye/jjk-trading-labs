@@ -2,10 +2,11 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { SymbolAutocompleteService } from '../../services/symbol-autocomplete.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { Observable, Subscription } from 'rxjs';
-import { map, startWith, debounceTime, distinctUntilChanged, switchMap, catchError, finalize } from 'rxjs/operators';
+import { map, debounceTime, distinctUntilChanged, switchMap, catchError, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
 
 export interface UserTrade {
@@ -39,7 +40,6 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
   displayedColumnsOpen: string[] = ['symbol', 'entry_date', 'entry_price', 'shares', 'stop_loss', 'target_price', 'current_pnl', 'actions'];
   displayedColumnsClosed: string[] = ['symbol', 'entry_date', 'exit_date', 'entry_price', 'exit_price', 'shares', 'pnl', 'pnl_percent', 'actions'];
   
-  availableSymbols: string[] = [];
   filteredSymbols!: Observable<string[]>;
   defaultStopLossMultiplier: number = 2.0;
   defaultATRPeriod: number = 14;
@@ -57,7 +57,8 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
     private apiService: ApiService,
     private authService: AuthService,
     private snackBar: MatSnackBar,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private symbolAutocompleteService: SymbolAutocompleteService
   ) {
     this.tradeForm = this.fb.group({
       symbol: ['', Validators.required],
@@ -74,7 +75,6 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadTrades();
-    this.loadSymbols();
     this.loadUserPreferences();
     this.setupSymbolAutocomplete();
   }
@@ -90,22 +90,9 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
     }
   }
 
-  loadSymbols(): void {
-    this.apiService.getSymbols().subscribe({
-      next: (response) => {
-        if (response.success) {
-          this.availableSymbols = response.symbols;
-        }
-      },
-      error: (error) => {
-        console.error('Error loading symbols:', error);
-      }
-    });
-  }
-
   loadUserPreferences(): void {
-    // Force fresh read from localStorage
-    const userStr = localStorage.getItem('user');
+    // Force fresh read from sessionStorage
+    const userStr = sessionStorage.getItem('user');
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
@@ -120,16 +107,8 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
   }
 
   setupSymbolAutocomplete(): void {
-    this.filteredSymbols = this.tradeForm.get('symbol')!.valueChanges.pipe(
-      startWith(''),
-      map(value => this.filterSymbols(value || ''))
-    );
-  }
-
-  private filterSymbols(value: string): string[] {
-    const filterValue = value.toUpperCase();
-    return this.availableSymbols.filter(symbol => 
-      symbol.startsWith(filterValue)
+    this.filteredSymbols = this.symbolAutocompleteService.setupAutocomplete(
+      this.tradeForm.get('symbol') as any
     );
   }
 
@@ -151,7 +130,8 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
     }
     
     // Validate symbol exists in available symbols
-    if (this.availableSymbols.length > 0 && !this.availableSymbols.includes(upperSymbol)) {
+    const availableSymbols = this.symbolAutocompleteService.getSymbols();
+    if (availableSymbols.length > 0 && !availableSymbols.includes(upperSymbol)) {
       return;
     }
     
