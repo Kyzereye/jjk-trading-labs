@@ -38,7 +38,6 @@ router.post('/analyze', authMiddleware, asyncHandler(async (req: AuthRequest, re
 
   // Ensure days is a number
   const daysNum = typeof days === 'string' ? parseInt(days, 10) : Number(days);
-  console.log('EMA Analysis params:', { symbol, days, daysNum, type: typeof daysNum });
 
   if (!symbol) {
     throw createError('Symbol is required', 400);

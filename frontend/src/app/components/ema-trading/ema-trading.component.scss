@@ -301,10 +301,10 @@ h1 {
   height: 500px;
   border: 1px solid #dddddd;
   border-radius: 6px;
-  background-color: #ffffff;
+  background-color: #1a1a1a;
   margin-top: 20px;
   box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
-  padding: 15px;
+  overflow: hidden;
 }
 
 .confidence-bar {

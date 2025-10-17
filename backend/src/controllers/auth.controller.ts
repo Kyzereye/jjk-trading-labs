@@ -18,12 +18,6 @@ dotenv.config();
 
 const router = Router();
 
-// Debug: Log environment variables at startup
-console.log('🔧 Auth Controller Environment Check:');
-console.log('   FRONTEND_URL:', process.env.FRONTEND_URL);
-console.log('   SMTP_HOST:', process.env.SMTP_HOST);
-console.log('   JWT_SECRET:', process.env.JWT_SECRET ? '✓ Set' : '✗ Not set');
-
 // Email transporter setup
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,

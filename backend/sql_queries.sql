@@ -309,7 +309,6 @@ INSERT IGNORE INTO stock_symbols (symbol, company_name) VALUES
 ('VZ', 'Verizon Communications Inc.'),
 ('WMT', 'Walmart Inc.'),
 ('YEXT', 'Yext Inc.'),
--- Additional 76 symbols recovered from CSV files
 ('ACN', 'Accenture plc'),
 ('ADBE', 'Adobe Inc.'),
 ('ADP', 'Automatic Data Processing'),
@@ -385,4 +384,5 @@ INSERT IGNORE INTO stock_symbols (symbol, company_name) VALUES
 ('WFC', 'Wells Fargo & Co'),
 ('WMB', 'Williams Companies Inc'),
 ('XEL', 'Xcel Energy Inc'),
-('XOM', 'Exxon Mobil Corp');
+('XOM', 'Exxon Mobil Corp'),
+('RBLX', 'Roblox Corp');

@@ -509,7 +509,6 @@ export class MATradingEngine {
    * Calculate running P&L, running capital, and drawdown for each trade
    */
   private calculateRunningMetrics(trades: MATrade[]): void {
-    console.log(`Calculating running metrics for ${trades.length} trades, initial capital: ${this.initialCapital}`);
     let runningPnL: number = 0;
     let runningCapital: number = Number(this.initialCapital);
     let peakCapital: number = Number(this.initialCapital);
@@ -533,13 +532,8 @@ export class MATradingEngine {
         trade.running_pnl = Number(runningPnL.toFixed(2));
         trade.running_capital = Number(runningCapital.toFixed(2));
         trade.drawdown = Number(drawdown.toFixed(2));
-        
-        if (i < 3) {
-          console.log(`Trade ${i}: PnL=${tradePnL.toFixed(2)}, RunningPnL=${runningPnL.toFixed(2)}, RunningCapital=${runningCapital.toFixed(2)}, Drawdown=${drawdown.toFixed(2)}`);
-        }
       }
     }
-    console.log(`Final running capital: ${runningCapital.toFixed(2)}, Final running PnL: ${runningPnL.toFixed(2)}`);
   }
 
   /**

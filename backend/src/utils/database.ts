@@ -123,15 +123,6 @@ export async function getStockData(symbol: string, days: number = 0): Promise<an
       daysInt = 0;
     }
     
-    console.log('getStockData called:', { 
-      symbol, 
-      daysOriginal: days, 
-      daysInt, 
-      typeOriginal: typeof days,
-      typeInt: typeof daysInt,
-      isNaN: isNaN(daysInt)
-    });
-    
     let query: string;
     let params: any[];
 
@@ -146,7 +137,6 @@ export async function getStockData(symbol: string, days: number = 0): Promise<an
         LIMIT ${daysInt}
       `;
       params = [symbol.toUpperCase()];
-      console.log('Query with LIMIT interpolated, params:', params, 'limit:', daysInt);
     } else {
       query = `
         SELECT d.date, d.open, d.high, d.low, d.close, d.volume 
@@ -156,7 +146,6 @@ export async function getStockData(symbol: string, days: number = 0): Promise<an
         ORDER BY d.date DESC
       `;
       params = [symbol.toUpperCase()];
-      console.log('Query without LIMIT, params:', params);
     }
 
     const [rows] = await dbService.execute(query, params);

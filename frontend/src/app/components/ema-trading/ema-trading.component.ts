@@ -112,7 +112,6 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
     const user = userStr ? JSON.parse(userStr) : null;
     
     if (user?.preferences) {
-      console.log('Loading user preferences:', user.preferences);
       this.analysisForm.patchValue({
         days: user.preferences.default_days || 365,
         atrMultiplier: user.preferences.default_atr_multiplier || 2.0,
@@ -158,8 +157,6 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
     if (columns.running_capital) this.displayedColumns.push('running_capital');
     if (columns.drawdown) this.displayedColumns.push('drawdown');
     if (columns.duration) this.displayedColumns.push('duration');
-    
-    console.log('Displayed columns:', this.displayedColumns);
   }
 
   runAnalysis(): void {
@@ -215,7 +212,7 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
   }
 
   private updateChart(): void {
-    if (this.activeTab === 4 && this.chartContainer && this.results) {
+    if (this.activeTab === 2 && this.chartContainer && this.results) {
       // Initialize chart if not already done
       if (!this.chartService.getChart()) {
         this.chartService.initializeChart(this.chartContainer.nativeElement);
@@ -264,7 +261,7 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
 
   onTabChange(index: number): void {
     this.activeTab = index;
-    if (index === 4) {
+    if (index === 2) {
       // Chart tab - update chart
       setTimeout(() => {
         this.updateChart();

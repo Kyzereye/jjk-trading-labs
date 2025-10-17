@@ -41,9 +41,12 @@ export class ChartService {
    * Initialize chart in the given container
    */
   initializeChart(container: HTMLElement): IChartApi {
+    const width = container.clientWidth || 800;
+    const height = container.clientHeight || 500;
+    
     this.chart = createChart(container, {
-      width: container.clientWidth,
-      height: 500,
+      width: width,
+      height: height,
       layout: {
         background: { color: '#1a1a1a' },
         textColor: '#d1d4dc',

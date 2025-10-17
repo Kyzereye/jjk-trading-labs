@@ -112,7 +112,6 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
         if (user?.preferences) {
           this.defaultStopLossMultiplier = parseFloat(user.preferences.default_atr_multiplier) || 2.0;
           this.defaultATRPeriod = user.preferences.default_atr_period || 14;
-          console.log('Loaded preferences - ATR Multiplier:', this.defaultStopLossMultiplier, 'ATR Period:', this.defaultATRPeriod);
         }
       } catch (error) {
         console.error('Error parsing user preferences:', error);
@@ -153,12 +152,10 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
     
     // Validate symbol exists in available symbols
     if (this.availableSymbols.length > 0 && !this.availableSymbols.includes(upperSymbol)) {
-      console.log(`Symbol ${upperSymbol} not found in available symbols`);
       return;
     }
     
     this.fetchingATR = true;
-    console.log(`Fetching ATR for ${upperSymbol}...`);
     
     this.apiService.getStockData(upperSymbol, 30, false, 'ema')
       .pipe(
@@ -177,7 +174,6 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
             const atr = this.calculateATR(response.data, this.defaultATRPeriod);
             this.currentATR = atr;
             this.currentSymbol = upperSymbol;
-            console.log(`ATR for ${upperSymbol}: $${atr.toFixed(2)}`);
             
             const entryPrice = this.tradeForm.get('entry_price')?.value;
             if (entryPrice && entryPrice > 0) {
@@ -270,7 +266,6 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
     this.fetchingATR = false;
     
     this.loadUserPreferences();
-    console.log('Opening add form with ATR multiplier:', this.defaultStopLossMultiplier);
     
     // Clean up old subscriptions before creating new ones
     if (this.symbolSubscription) {
@@ -303,9 +298,7 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
         const symbol = this.tradeForm.get('symbol')?.value;
         
         if (symbol && symbol.length > 0 && entryPrice && entryPrice > 0) {
-          const atr = this.currentATR > 0 ? this.currentATR : (entryPrice * 0.02);
           const suggestedStopLoss = this.calculateSuggestedStopLoss(entryPrice);
-          console.log(`Symbol: ${symbol}, Entry Price: $${entryPrice}, ATR: $${atr.toFixed(2)} (${this.currentATR > 0 ? 'ACTUAL' : 'ESTIMATED'}), Stop Loss PRICE: $${suggestedStopLoss.toFixed(2)}`);
           this.tradeForm.patchValue({ stop_loss: suggestedStopLoss.toFixed(2) }, { emitEvent: false });
         } else {
           this.tradeForm.patchValue({ stop_loss: '' }, { emitEvent: false });
@@ -363,9 +356,7 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
         const symbol = this.tradeForm.get('symbol')?.value;
         
         if (symbol && symbol.length > 0 && entryPrice && entryPrice > 0) {
-          const atr = this.currentATR > 0 ? this.currentATR : (entryPrice * 0.02);
           const suggestedStopLoss = this.calculateSuggestedStopLoss(entryPrice);
-          console.log(`Symbol: ${symbol}, Entry Price: $${entryPrice}, ATR: $${atr.toFixed(2)} (${this.currentATR > 0 ? 'ACTUAL' : 'ESTIMATED'}), Stop Loss PRICE: $${suggestedStopLoss.toFixed(2)}`);
           this.tradeForm.patchValue({ stop_loss: suggestedStopLoss.toFixed(2) }, { emitEvent: false });
         }
       });
