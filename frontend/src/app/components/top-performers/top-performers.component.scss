@@ -36,39 +36,6 @@ h1 {
   }
 }
 
-// Controls Card
-.controls-card {
-  margin-bottom: 20px;
-  background-color: #ffffff;
-  border-radius: 6px;
-  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
-}
-
-.controls {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  flex-wrap: wrap;
-  
-  mat-form-field {
-    min-width: 200px;
-  }
-  
-  button {
-    height: 40px;
-    background-color: #51cbce;
-    color: #ffffff;
-    
-    mat-icon {
-      margin-right: 8px;
-    }
-    
-    &:hover:not([disabled]) {
-      background-color: #3ab5b8;
-    }
-  }
-}
-
 // Loading State
 .loading-state {
   text-align: center;
@@ -81,6 +48,29 @@ h1 {
   p {
     color: #9a9a9a;
     font-size: 16px;
+  }
+}
+
+// Filters Card
+.filters-card {
+  margin-bottom: 20px;
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+  
+  mat-card-content {
+    padding: 15px 20px;
+  }
+  
+  .filters-row {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    
+    mat-form-field {
+      flex: 0 0 auto;
+      min-width: 250px;
+    }
   }
 }
 
@@ -142,6 +132,20 @@ h1 {
     letter-spacing: 0.5px;
     padding: 16px 12px;
     background-color: #f4f3ef;
+    
+    &.mat-sort-header-sorted {
+      color: #51cbce;
+    }
+    
+    .rank-info-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      margin-left: 4px;
+      vertical-align: middle;
+      color: #9a9a9a;
+      cursor: help;
+    }
   }
   
   mat-cell {

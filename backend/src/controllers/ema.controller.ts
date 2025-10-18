@@ -312,16 +312,21 @@ router.post('/top-performers', authMiddleware, asyncHandler(async (req: AuthRequ
   const {
     limit = 20,
     sort_by = 'total_return_pct',
-    min_trades = 5
+    min_trades = 5,
+    time_period = 'ALL'
   } = req.body;
 
   // Ensure limit is a valid number
-  const limitNum = Math.min(Math.max(parseInt(String(limit)), 1), 200);
+  const limitNum = Math.min(Math.max(parseInt(String(limit)), 1), 5000);
   const minTradesNum = Math.max(parseInt(String(min_trades)), 0);
 
   // Validate sort_by
   const validSortFields = ['total_return_pct', 'sharpe_ratio', 'win_rate'];
   const sortField = validSortFields.includes(sort_by) ? sort_by : 'total_return_pct';
+  
+  // Validate time_period
+  const validTimePeriods = ['ALL', '1Y'];
+  const timePeriod = validTimePeriods.includes(time_period) ? time_period : 'ALL';
 
   // Build query with safe ORDER BY and LIMIT (using interpolation for LIMIT is safe with validated number)
   let query = `
@@ -338,7 +343,8 @@ router.post('/top-performers', authMiddleware, asyncHandler(async (req: AuthRequ
     FROM stock_performance_metrics p
     JOIN stock_symbols s ON p.symbol_id = s.id
     WHERE p.total_trades >= ?
-      AND p.analysis_date = (SELECT MAX(analysis_date) FROM stock_performance_metrics)
+      AND p.time_period = ?
+      AND p.analysis_date = (SELECT MAX(analysis_date) FROM stock_performance_metrics WHERE time_period = ?)
   `;
   
   // Add ORDER BY based on validated field
@@ -356,7 +362,7 @@ router.post('/top-performers', authMiddleware, asyncHandler(async (req: AuthRequ
   const { getDbConnection } = await import('../utils/database');
   const db = getDbConnection();
   
-  const [rows] = await db.execute(query, [minTradesNum]);
+  const [rows] = await db.execute(query, [minTradesNum, timePeriod, timePeriod]);
   
   const topPerformers = (rows as any[]).map(row => ({
     symbol: row.symbol,
@@ -369,17 +375,17 @@ router.post('/top-performers', authMiddleware, asyncHandler(async (req: AuthRequ
     analysis_date: row.analysis_date
   }));
 
-  // Get total analyzed count
+  // Get total analyzed count for this time period
   const [countRows] = await db.execute(
-    'SELECT COUNT(*) as count FROM stock_performance_metrics WHERE analysis_date = (SELECT MAX(analysis_date) FROM stock_performance_metrics)',
-    []
+    'SELECT COUNT(*) as count FROM stock_performance_metrics WHERE time_period = ? AND analysis_date = (SELECT MAX(analysis_date) FROM stock_performance_metrics WHERE time_period = ?)',
+    [timePeriod, timePeriod]
   );
   const totalAnalyzed = (countRows as any[])[0]?.count || 0;
 
-  // Get latest analysis date
+  // Get latest analysis date for this time period
   const [dateRows] = await db.execute(
-    'SELECT MAX(analysis_date) as latest FROM stock_performance_metrics',
-    []
+    'SELECT MAX(analysis_date) as latest FROM stock_performance_metrics WHERE time_period = ?',
+    [timePeriod]
   );
   const latestAnalysisDate = (dateRows as any[])[0]?.latest || null;
 

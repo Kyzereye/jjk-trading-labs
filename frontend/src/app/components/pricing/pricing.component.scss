@@ -1,0 +1,424 @@
+.pricing-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 60px 15px;
+}
+
+// Header Section
+.pricing-header {
+  text-align: center;
+  margin-bottom: 60px;
+
+  h1 {
+    color: #66615b;
+    font-size: 42px;
+    font-weight: 300;
+    margin-bottom: 15px;
+    font-family: 'Roboto', sans-serif;
+  }
+
+  .subtitle {
+    color: #9a9a9a;
+    font-size: 18px;
+    font-weight: 300;
+    margin-bottom: 40px;
+  }
+}
+
+// Billing Toggle
+.billing-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 30px;
+
+  .toggle-label {
+    color: #9a9a9a;
+    font-size: 16px;
+    font-weight: 400;
+    transition: color 0.3s;
+
+    &.active {
+      color: #66615b;
+      font-weight: 600;
+    }
+  }
+
+  .toggle-switch {
+    min-width: 60px;
+    height: 32px;
+    padding: 0;
+
+    .switch-track {
+      width: 54px;
+      height: 28px;
+      background-color: #e3e3e3;
+      border-radius: 14px;
+      position: relative;
+      transition: background-color 0.3s;
+
+      .switch-thumb {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 22px;
+        height: 22px;
+        background-color: #ffffff;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        transition: left 0.3s;
+
+        &.annual {
+          left: 29px;
+        }
+      }
+    }
+
+    &:hover .switch-track {
+      background-color: #d3d3d3;
+    }
+  }
+
+  .savings-badge {
+    display: inline-block;
+    background-color: #6bd098;
+    color: #ffffff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+// Plans Grid
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 30px;
+  margin-bottom: 60px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+// Plan Card
+.plan-card {
+  position: relative;
+  background-color: #ffffff;
+  border-radius: 8px;
+  border-top: 4px solid #e3e3e3;
+  box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+  padding: 0;
+  overflow: visible;
+
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.15);
+  }
+
+  &.popular {
+    border-top-width: 6px;
+    transform: scale(1.05);
+    box-shadow: 0 12px 30px -4px rgba(81, 203, 206, 0.3);
+
+    &:hover {
+      transform: scale(1.05) translateY(-8px);
+      box-shadow: 0 16px 40px -4px rgba(81, 203, 206, 0.4);
+    }
+  }
+
+  .plan-badge {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #ffffff;
+    padding: 6px 20px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  }
+
+  mat-card-content {
+    padding: 0;
+  }
+}
+
+// Plan Header
+.plan-header {
+  padding: 40px 30px 30px;
+  text-align: center;
+  border-bottom: 1px solid #f4f3ef;
+
+  h2 {
+    color: #66615b;
+    font-size: 28px;
+    font-weight: 400;
+    margin: 0 0 20px 0;
+  }
+}
+
+.price-section {
+  .price {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    margin-bottom: 10px;
+
+    .currency {
+      color: #9a9a9a;
+      font-size: 24px;
+      font-weight: 400;
+    }
+
+    .amount {
+      color: #66615b;
+      font-size: 56px;
+      font-weight: 300;
+      margin: 0 4px;
+    }
+
+    .period {
+      color: #9a9a9a;
+      font-size: 18px;
+      font-weight: 400;
+    }
+  }
+
+  .annual-note {
+    color: #9a9a9a;
+    font-size: 13px;
+    margin-bottom: 5px;
+  }
+
+  .savings {
+    color: #6bd098;
+    font-size: 14px;
+    font-weight: 600;
+  }
+}
+
+// Features List
+.features-list {
+  padding: 30px;
+  min-height: 480px;
+
+  .feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    span {
+      color: #66615b;
+    }
+
+    &.included {
+      mat-icon {
+        color: #6bd098;
+      }
+
+      &.highlight span {
+        font-weight: 600;
+        color: #51cbce;
+      }
+    }
+
+    &.excluded {
+      opacity: 0.4;
+
+      mat-icon {
+        color: #9a9a9a;
+      }
+
+      span {
+        text-decoration: line-through;
+      }
+    }
+  }
+}
+
+// CTA Button
+.cta-button {
+  width: calc(100% - 60px);
+  margin: 0 30px 20px;
+  height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s;
+
+  &:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+  }
+}
+
+.trial-note {
+  text-align: center;
+  color: #9a9a9a;
+  font-size: 12px;
+  margin: 0 0 30px 0;
+  font-style: italic;
+}
+
+// FAQ Section
+.faq-section {
+  max-width: 900px;
+  margin: 80px auto 60px;
+
+  h2 {
+    text-align: center;
+    color: #66615b;
+    font-size: 32px;
+    font-weight: 300;
+    margin-bottom: 40px;
+  }
+
+  mat-accordion {
+    .mat-expansion-panel {
+      margin-bottom: 15px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .mat-expansion-panel-header {
+      padding: 20px 24px;
+
+      &:hover {
+        background-color: #fafafa !important;
+      }
+    }
+
+    mat-panel-title {
+      color: #66615b;
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .mat-expansion-panel-body {
+      padding: 0 24px 20px;
+    }
+
+    p {
+      color: #66615b;
+      font-size: 14px;
+      line-height: 1.7;
+      margin: 0;
+    }
+  }
+}
+
+// Trust Section
+.trust-section {
+  display: flex;
+  justify-content: center;
+  gap: 50px;
+  flex-wrap: wrap;
+  padding: 40px 20px;
+  background-color: #f4f3ef;
+  border-radius: 8px;
+  margin-top: 40px;
+
+  .trust-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #66615b;
+    font-size: 14px;
+
+    mat-icon {
+      color: #51cbce;
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 1024px) {
+  .plans-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .plan-card.popular {
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .pricing-container {
+    padding: 40px 10px;
+  }
+
+  .pricing-header {
+    h1 {
+      font-size: 32px;
+    }
+
+    .subtitle {
+      font-size: 16px;
+    }
+  }
+
+  .plans-grid {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+  }
+
+  .plan-card.popular {
+    transform: none;
+  }
+
+  .trust-section {
+    gap: 25px;
+
+    .trust-item {
+      flex: 1 1 40%;
+      justify-content: center;
+    }
+  }
+
+  .billing-toggle {
+    flex-direction: column;
+    gap: 10px;
+
+    .savings-badge {
+      display: block;
+      margin-left: 0;
+      margin-top: 5px;
+    }
+  }
+}
+

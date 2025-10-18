@@ -61,20 +61,15 @@ export class AppComponent implements OnInit {
   }
 
   onTabChange(index: number) {
-    // User clicked a tab, navigate to corresponding route
-    switch (index) {
-      case 0:
-        this.router.navigate(['/dashboard']);
-        break;
-      case 1:
-        this.router.navigate(['/trading']);
-        break;
-      case 2:
-        this.router.navigate(['/optimization']);
-        break;
-      case 3:
-        this.router.navigate(['/top-performers']);
-        break;
+    // Always navigate when user clicks a tab
+    // This fixes the issue where clicking the current tab from a non-tab page does nothing
+    const routes = ['/dashboard', '/trading', '/optimization', '/top-performers'];
+    const targetRoute = routes[index];
+    
+    // Only navigate if we're not already on this route
+    const currentUrl = this.router.url.split('?')[0];
+    if (currentUrl !== targetRoute) {
+      this.router.navigate([targetRoute]);
     }
   }
 

@@ -194,14 +194,11 @@ export class UserProfileComponent implements OnInit {
   }
 
   loadUserProfile(): void {
-    console.log('Loading user profile...');
     this.loading = true;
     this.apiService.getUserProfile().subscribe({
       next: (response) => {
-        console.log('Profile response:', response);
         this.user = response.user;
         if (this.user) {
-          console.log('User data loaded:', this.user);
           this.profileForm.patchValue({
             name: this.user.name,
             email: this.user.email
@@ -210,8 +207,6 @@ export class UserProfileComponent implements OnInit {
           if (this.user.preferences) {
             this.preferencesForm.patchValue(this.user.preferences);
           }
-        } else {
-          console.log('No user data in response');
         }
         this.loading = false;
       },

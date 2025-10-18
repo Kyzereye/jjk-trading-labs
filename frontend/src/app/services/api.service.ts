@@ -69,7 +69,7 @@ export interface EMAAnalysisResponse {
 }
 
 export interface OptimizationRequest {
-  symbol: string;
+  symbol?: string; // Optional - passed as separate parameter to optimizeMA
   days?: number;
   fast_range?: string;
   slow_range?: string;
@@ -108,6 +108,7 @@ export interface OptimizationResponse {
     profit_factor: number;
     total_trades: number;
     avg_trade_duration: number;
+    date_range: string;
   }>;
   total_pairs_tested: number;
   summary_stats: {

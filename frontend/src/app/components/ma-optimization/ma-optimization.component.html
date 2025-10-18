@@ -1,4 +1,386 @@
 <div class="optimization-container">
   <h1>MA Optimization</h1>
-  <p>Coming soon...</p>
+  <p class="subtitle">Find the best moving average pairs for your stocks</p>
+
+  <!-- Configuration Form -->
+  <mat-card class="config-card">
+    <mat-card-header>
+      <mat-card-title>Optimization Parameters</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="optimizationForm">
+        <!-- Symbols Input -->
+        <div class="form-row symbols-row">
+          <mat-form-field appearance="outline" class="symbols-field">
+            <mat-label>Stock Symbols</mat-label>
+            <input matInput 
+                   formControlName="symbols" 
+                   placeholder="e.g., AAPL, MSFT, NVDA (comma or space separated)"
+                   [matAutocomplete]="auto">
+            <mat-autocomplete #auto="matAutocomplete">
+              <mat-option *ngFor="let symbol of filteredSymbols | async" [value]="symbol">
+                {{ symbol }}
+              </mat-option>
+            </mat-autocomplete>
+            <mat-icon matSuffix>search</mat-icon>
+            <mat-hint>Enter one or more stock symbols</mat-hint>
+          </mat-form-field>
+          
+          <button mat-stroked-button 
+                  type="button"
+                  class="favorites-button"
+                  (click)="loadFavoritesIntoForm()" 
+                  [disabled]="loadingFavorites || userFavorites.length === 0">
+            <mat-icon>star</mat-icon>
+            <span *ngIf="!loadingFavorites">
+              Optimize My Favorites
+              <span *ngIf="userFavorites.length > 0" class="favorites-count">({{ userFavorites.length }})</span>
+            </span>
+            <span *ngIf="loadingFavorites">Loading...</span>
+          </button>
+        </div>
+
+        <div class="form-row">
+          <!-- Time Period -->
+          <mat-form-field appearance="outline">
+            <mat-label>Days to Analyze</mat-label>
+            <input matInput type="number" formControlName="days">
+            <mat-hint>Historical data period</mat-hint>
+          </mat-form-field>
+
+          <!-- MA Type -->
+          <mat-form-field appearance="outline">
+            <mat-label>MA Type</mat-label>
+            <mat-select formControlName="maType">
+              <mat-option *ngFor="let type of maTypes" [value]="type.value">
+                {{ type.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <!-- Fast MA Range -->
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Fast MA Min</mat-label>
+            <input matInput type="number" formControlName="fastRangeMin">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Fast MA Max</mat-label>
+            <input matInput type="number" formControlName="fastRangeMax">
+          </mat-form-field>
+
+          <mat-hint class="range-hint">Fast MA Range: Test moving averages from {{ optimizationForm.get('fastRangeMin')?.value }} to {{ optimizationForm.get('fastRangeMax')?.value }} periods</mat-hint>
+        </div>
+
+        <!-- Slow MA Range -->
+        <div class="form-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Slow MA Min</mat-label>
+            <input matInput type="number" formControlName="slowRangeMin">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Slow MA Max</mat-label>
+            <input matInput type="number" formControlName="slowRangeMax">
+          </mat-form-field>
+
+          <mat-hint class="range-hint">Slow MA Range: Test moving averages from {{ optimizationForm.get('slowRangeMin')?.value }} to {{ optimizationForm.get('slowRangeMax')?.value }} periods</mat-hint>
+        </div>
+
+        <!-- Advanced Parameters (Collapsible) -->
+        <mat-expansion-panel class="advanced-panel">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              Advanced Parameters
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>Min Distance</mat-label>
+              <input matInput type="number" formControlName="minDistance">
+              <mat-hint>Minimum periods between fast and slow MA</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Initial Capital</mat-label>
+              <input matInput type="number" formControlName="initialCapital">
+              <mat-hint>Starting capital for backtest</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>ATR Period</mat-label>
+              <input matInput type="number" formControlName="atrPeriod">
+              <mat-hint>Average True Range period</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>ATR Multiplier</mat-label>
+              <input matInput type="number" step="0.1" formControlName="atrMultiplier">
+              <mat-hint>Stop loss multiplier</mat-hint>
+            </mat-form-field>
+          </div>
+        </mat-expansion-panel>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <button mat-raised-button 
+                  color="primary" 
+                  (click)="runOptimization()" 
+                  [disabled]="loading || optimizationForm.invalid">
+            <mat-icon>play_arrow</mat-icon>
+            {{ loading ? 'Running Optimization...' : 'Run Optimization' }}
+          </button>
+          
+          <button mat-raised-button 
+                  (click)="reset()" 
+                  [disabled]="loading">
+            <mat-icon>refresh</mat-icon>
+            Reset
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Loading Progress -->
+  <mat-card *ngIf="loading" class="progress-card">
+    <mat-card-content>
+      <div class="progress-content">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Optimizing moving average pairs...</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Results - Single Stock (No Expansion Panel) -->
+  <div *ngIf="results.length === 1" class="results-section">
+    <mat-card *ngFor="let result of results" class="result-card">
+      <mat-card-header>
+        <div class="result-header">
+          <div class="symbol-status">
+            <h2>{{ result.symbol }}</h2>
+            <mat-icon [style.color]="getStatusColor(result.status)">
+              {{ getStatusIcon(result.status) }}
+            </mat-icon>
+            <span class="status-text" [style.color]="getStatusColor(result.status)">
+              {{ result.status }}
+            </span>
+          </div>
+          
+          <div *ngIf="result.bestPair" class="best-pair-summary">
+            <div class="metric">
+              <span class="label">Best Pair:</span>
+              <span class="value">{{ result.bestPair.fast_ma }}/{{ result.bestPair.slow_ma }}</span>
+            </div>
+            <div class="metric highlight">
+              <span class="label">Return:</span>
+              <span class="value">{{ formatPercent(result.bestPair.total_return_percent) }}</span>
+            </div>
+            <div class="metric">
+              <span class="label">Sharpe:</span>
+              <span class="value">{{ result.bestPair.sharpe_ratio.toFixed(2) }}</span>
+            </div>
+            <div class="metric">
+              <span class="label">Win Rate:</span>
+              <span class="value">{{ result.bestPair.win_rate.toFixed(1) }}%</span>
+            </div>
+          </div>
+        </div>
+      </mat-card-header>
+
+      <mat-card-content *ngIf="result.status === 'complete' && result.topPairs.length > 0">
+        <h3>Top 5 MA Pairs</h3>
+        <table mat-table [dataSource]="result.topPairs" class="pairs-table">
+          <!-- Rank Column -->
+          <ng-container matColumnDef="rank">
+            <th mat-header-cell *matHeaderCellDef>Rank</th>
+            <td mat-cell *matCellDef="let pair; let i = index">
+              <span class="rank-badge" [class.rank-gold]="i === 0" [class.rank-silver]="i === 1" [class.rank-bronze]="i === 2">
+                #{{ i + 1 }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Fast MA Column -->
+          <ng-container matColumnDef="fast_ma">
+            <th mat-header-cell *matHeaderCellDef>Fast MA</th>
+            <td mat-cell *matCellDef="let pair">{{ pair.fast_ma }}</td>
+          </ng-container>
+
+          <!-- Slow MA Column -->
+          <ng-container matColumnDef="slow_ma">
+            <th mat-header-cell *matHeaderCellDef>Slow MA</th>
+            <td mat-cell *matCellDef="let pair">{{ pair.slow_ma }}</td>
+          </ng-container>
+
+          <!-- MA Distance Column -->
+          <ng-container matColumnDef="ma_distance">
+            <th mat-header-cell *matHeaderCellDef>Distance</th>
+            <td mat-cell *matCellDef="let pair">{{ pair.ma_distance }}</td>
+          </ng-container>
+
+          <!-- Total Return Column -->
+          <ng-container matColumnDef="total_return">
+            <th mat-header-cell *matHeaderCellDef>Total Return</th>
+            <td mat-cell *matCellDef="let pair" [class.positive]="pair.total_return_percent >= 0" [class.negative]="pair.total_return_percent < 0">
+              {{ formatPercent(pair.total_return_percent) }}
+            </td>
+          </ng-container>
+
+          <!-- Sharpe Ratio Column -->
+          <ng-container matColumnDef="sharpe_ratio">
+            <th mat-header-cell *matHeaderCellDef>Sharpe Ratio</th>
+            <td mat-cell *matCellDef="let pair">{{ pair.sharpe_ratio.toFixed(2) }}</td>
+          </ng-container>
+
+          <!-- Win Rate Column -->
+          <ng-container matColumnDef="win_rate">
+            <th mat-header-cell *matHeaderCellDef>Win Rate</th>
+            <td mat-cell *matCellDef="let pair">{{ pair.win_rate.toFixed(1) }}%</td>
+          </ng-container>
+
+          <!-- Total Trades Column -->
+          <ng-container matColumnDef="total_trades">
+            <th mat-header-cell *matHeaderCellDef>Trades</th>
+            <td mat-cell *matCellDef="let pair">{{ pair.total_trades }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="pair-row"></tr>
+        </table>
+      </mat-card-content>
+
+      <mat-card-content *ngIf="result.status === 'error'" class="error-content">
+        <mat-icon>error_outline</mat-icon>
+        <p>{{ result.error }}</p>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Results - Multiple Stocks (With Expansion Panels) -->
+  <div *ngIf="results.length > 1" class="results-section">
+    <mat-accordion multi>
+      <mat-expansion-panel *ngFor="let result of results; let first = first" [expanded]="false">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <div class="panel-title-content">
+              <div class="symbol-info">
+                <mat-icon [style.color]="getStatusColor(result.status)">
+                  {{ getStatusIcon(result.status) }}
+                </mat-icon>
+                <h3>{{ result.symbol }}</h3>
+                <span class="status-badge" [style.background-color]="getStatusColor(result.status)">
+                  {{ result.status }}
+                </span>
+              </div>
+              <div *ngIf="result.bestPair" class="panel-summary">
+                <span class="summary-item">
+                  <strong>Best:</strong> {{ result.bestPair.fast_ma }}/{{ result.bestPair.slow_ma }}
+                </span>
+                <span class="summary-item highlight">
+                  {{ formatPercent(result.bestPair.total_return_percent) }}
+                </span>
+              </div>
+            </div>
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <!-- Panel Content -->
+        <div *ngIf="result.bestPair" class="panel-metrics">
+          <div class="metric">
+            <span class="label">Best Pair</span>
+            <span class="value">{{ result.bestPair.fast_ma }}/{{ result.bestPair.slow_ma }}</span>
+          </div>
+          <div class="metric highlight">
+            <span class="label">Total Return</span>
+            <span class="value">{{ formatPercent(result.bestPair.total_return_percent) }}</span>
+          </div>
+          <div class="metric">
+            <span class="label">Sharpe Ratio</span>
+            <span class="value">{{ result.bestPair.sharpe_ratio.toFixed(2) }}</span>
+          </div>
+          <div class="metric">
+            <span class="label">Win Rate</span>
+            <span class="value">{{ result.bestPair.win_rate.toFixed(1) }}%</span>
+          </div>
+          <div class="metric">
+            <span class="label">Total Trades</span>
+            <span class="value">{{ result.bestPair.total_trades }}</span>
+          </div>
+        </div>
+
+        <div *ngIf="result.status === 'complete' && result.topPairs.length > 0" class="panel-table">
+          <h4>Top 5 MA Pairs</h4>
+          <table mat-table [dataSource]="result.topPairs" class="pairs-table">
+            <!-- Rank Column -->
+            <ng-container matColumnDef="rank">
+              <th mat-header-cell *matHeaderCellDef>Rank</th>
+              <td mat-cell *matCellDef="let pair; let i = index">
+                <span class="rank-badge" [class.rank-gold]="i === 0" [class.rank-silver]="i === 1" [class.rank-bronze]="i === 2">
+                  #{{ i + 1 }}
+                </span>
+              </td>
+            </ng-container>
+
+            <!-- Fast MA Column -->
+            <ng-container matColumnDef="fast_ma">
+              <th mat-header-cell *matHeaderCellDef>Fast MA</th>
+              <td mat-cell *matCellDef="let pair">{{ pair.fast_ma }}</td>
+            </ng-container>
+
+            <!-- Slow MA Column -->
+            <ng-container matColumnDef="slow_ma">
+              <th mat-header-cell *matHeaderCellDef>Slow MA</th>
+              <td mat-cell *matCellDef="let pair">{{ pair.slow_ma }}</td>
+            </ng-container>
+
+            <!-- MA Distance Column -->
+            <ng-container matColumnDef="ma_distance">
+              <th mat-header-cell *matHeaderCellDef>Distance</th>
+              <td mat-cell *matCellDef="let pair">{{ pair.ma_distance }}</td>
+            </ng-container>
+
+            <!-- Total Return Column -->
+            <ng-container matColumnDef="total_return">
+              <th mat-header-cell *matHeaderCellDef>Total Return</th>
+              <td mat-cell *matCellDef="let pair" [class.positive]="pair.total_return_percent >= 0" [class.negative]="pair.total_return_percent < 0">
+                {{ formatPercent(pair.total_return_percent) }}
+              </td>
+            </ng-container>
+
+            <!-- Sharpe Ratio Column -->
+            <ng-container matColumnDef="sharpe_ratio">
+              <th mat-header-cell *matHeaderCellDef>Sharpe Ratio</th>
+              <td mat-cell *matCellDef="let pair">{{ pair.sharpe_ratio.toFixed(2) }}</td>
+            </ng-container>
+
+            <!-- Win Rate Column -->
+            <ng-container matColumnDef="win_rate">
+              <th mat-header-cell *matHeaderCellDef>Win Rate</th>
+              <td mat-cell *matCellDef="let pair">{{ pair.win_rate.toFixed(1) }}%</td>
+            </ng-container>
+
+            <!-- Total Trades Column -->
+            <ng-container matColumnDef="total_trades">
+              <th mat-header-cell *matHeaderCellDef>Trades</th>
+              <td mat-cell *matCellDef="let pair">{{ pair.total_trades }}</td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="pair-row"></tr>
+          </table>
+        </div>
+
+        <div *ngIf="result.status === 'error'" class="error-content">
+          <mat-icon>error_outline</mat-icon>
+          <p>{{ result.error }}</p>
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
+  </div>
 </div>

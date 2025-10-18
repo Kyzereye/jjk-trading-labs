@@ -11,12 +11,14 @@ import { UserProfileComponent } from './components/user-profile/user-profile.com
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { AboutComponent } from './components/about/about.component';
 import { SymbolManagementComponent } from './components/symbol-management/symbol-management.component';
+import { PricingComponent } from './components/pricing/pricing.component';
 
 const routes: Routes = [
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'verify-email', component: EmailVerificationComponent },
+  { path: 'pricing', component: PricingComponent },
   { path: 'about', component: AboutComponent },
   {
     path: 'dashboard',

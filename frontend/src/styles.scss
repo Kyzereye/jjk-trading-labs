@@ -459,3 +459,16 @@ input.mat-mdc-input-element {
 mat-spinner circle {
   stroke: #51cbce;
 }
+
+/* Sort Headers */
+.mat-sort-header-arrow {
+  color: #51cbce;
+}
+
+.mat-sort-header-container:hover .mat-sort-header-arrow {
+  opacity: 1;
+}
+
+.mat-sort-header-sorted {
+  color: #51cbce !important;
+}

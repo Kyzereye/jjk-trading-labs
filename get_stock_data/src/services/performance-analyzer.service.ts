@@ -41,6 +41,7 @@ export class PerformanceAnalyzer {
     symbol: string,
     stockData: StockData[],
     analysisParams: AnalysisParams,
+    timePeriod: string = 'ALL',
     analysisDate?: Date
   ): Promise<boolean> {
     try {
@@ -64,6 +65,16 @@ export class PerformanceAnalyzer {
         custom_slow_ma = undefined
       } = analysisParams;
 
+      // Slice data if days parameter is specified
+      let dataToAnalyze = stockData;
+      if (analysisParams.days && analysisParams.days > 0) {
+        // Take the most recent N days
+        dataToAnalyze = stockData.slice(-analysisParams.days);
+        console.log(`  ⏱  Using last ${analysisParams.days} days of data (${dataToAnalyze.length} days available)`);
+      } else {
+        console.log(`  ⏱  Using all ${stockData.length} days of data`);
+      }
+
       const engine = new MATradingEngine(
         initial_capital,
         atr_period,
@@ -75,7 +86,7 @@ export class PerformanceAnalyzer {
         position_sizing_percentage
       );
 
-      const results = await engine.runAnalysis(stockData, symbol);
+      const results = await engine.runAnalysis(dataToAnalyze, symbol);
 
       const totalTrades = results.trades.length;
       const winningTrades = results.trades.filter(t => t.pnl && t.pnl > 0).length;
@@ -90,6 +101,7 @@ export class PerformanceAnalyzer {
       await this.storePerformanceMetrics(
         symbolId,
         analysisDate,
+        timePeriod,
         totalReturnPct,
         totalPnl,
         winRate,
@@ -110,6 +122,7 @@ export class PerformanceAnalyzer {
   private async storePerformanceMetrics(
     symbolId: number,
     analysisDate: Date,
+    timePeriod: string,
     totalReturnPct: number,
     totalPnl: number,
     winRate: number,
@@ -119,8 +132,8 @@ export class PerformanceAnalyzer {
   ): Promise<void> {
     const query = `
       INSERT INTO stock_performance_metrics 
-      (symbol_id, analysis_date, total_return_pct, total_pnl, win_rate, total_trades, sharpe_ratio, analysis_params)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      (symbol_id, analysis_date, time_period, total_return_pct, total_pnl, win_rate, total_trades, sharpe_ratio, analysis_params)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
       total_return_pct = VALUES(total_return_pct),
       total_pnl = VALUES(total_pnl),
@@ -134,6 +147,7 @@ export class PerformanceAnalyzer {
     const params = [
       symbolId,
       analysisDate.toISOString().split('T')[0],
+      timePeriod,
       parseFloat(totalReturnPct.toFixed(2)),
       parseFloat(totalPnl.toFixed(2)),
       parseFloat(winRate.toFixed(1)),

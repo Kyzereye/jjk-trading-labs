@@ -8,16 +8,35 @@ import yahooFinance from 'yahoo-finance2';
 import { DatabaseService, StockData } from '../services/database.service';
 import { PerformanceAnalyzer, AnalysisParams } from '../services/performance-analyzer.service';
 
-// Default analysis parameters for top performers
-const DEFAULT_ANALYSIS_PARAMS: AnalysisParams = {
-  initial_capital: 100000,
-  atr_period: 14,
-  atr_multiplier: 2.0,
-  ma_type: 'ema',
-  position_sizing_percentage: 5.0,
-  days: 0, // Use all available data
-  mean_reversion_threshold: 10.0
-};
+// Analysis parameters for different time periods
+const TIME_PERIODS = [
+  {
+    label: 'ALL',
+    days: 0, // Use all available data
+    params: {
+      initial_capital: 100000,
+      atr_period: 14,
+      atr_multiplier: 2.0,
+      ma_type: 'ema' as const,
+      position_sizing_percentage: 5.0,
+      days: 0,
+      mean_reversion_threshold: 10.0
+    }
+  },
+  {
+    label: '1Y',
+    days: 365, // Last 1 year
+    params: {
+      initial_capital: 100000,
+      atr_period: 14,
+      atr_multiplier: 2.0,
+      ma_type: 'ema' as const,
+      position_sizing_percentage: 5.0,
+      days: 365,
+      mean_reversion_threshold: 10.0
+    }
+  }
+];
 
 async function fetchStockData(symbol: string, period: string = '3y'): Promise<StockData[]> {
   try {
@@ -57,7 +76,7 @@ async function main() {
   console.log('📊 This will:');
   console.log('   1. Fetch 3 years of stock data from Yahoo Finance');
   console.log('   2. Store data in MySQL database');
-  console.log('   3. Run MA trading analysis on each symbol');
+  console.log('   3. Run MA trading analysis on each symbol (ALL data + 1 Year)');
   console.log('   4. Store performance metrics for Top Performers\n');
   
   const db = new DatabaseService();
@@ -101,18 +120,31 @@ async function main() {
           
           successCount++;
           
-          // Run performance analysis
-          console.log(`  🔬 Running MA trading analysis...`);
-          const analysisSuccess = await analyzer.analyzeAndStorePerformance(
-            symbol,
-            stockData,
-            DEFAULT_ANALYSIS_PARAMS
-          );
+          // Run performance analysis for each time period
+          console.log(`  🔬 Running MA trading analysis for ALL periods...`);
+          let periodSuccessCount = 0;
           
-          if (analysisSuccess) {
+          for (const period of TIME_PERIODS) {
+            console.log(`     ⏱  Analyzing ${period.label}...`);
+            const analysisSuccess = await analyzer.analyzeAndStorePerformance(
+              symbol,
+              stockData,
+              period.params,
+              period.label
+            );
+            
+            if (analysisSuccess) {
+              periodSuccessCount++;
+            }
+          }
+          
+          if (periodSuccessCount === TIME_PERIODS.length) {
             analysisSuccessCount++;
-          } else {
+          } else if (periodSuccessCount === 0) {
             analysisErrorCount++;
+          } else {
+            // Partial success
+            analysisSuccessCount++;
           }
           
         } else {

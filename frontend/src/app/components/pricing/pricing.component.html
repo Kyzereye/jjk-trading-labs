@@ -1,0 +1,178 @@
+<div class="pricing-container">
+  <!-- Header -->
+  <div class="pricing-header">
+    <h1>Choose Your Plan</h1>
+    <p class="subtitle">Start with a 7-day free trial. No credit card required.</p>
+    
+    <!-- Billing Toggle -->
+    <div class="billing-toggle">
+      <span class="toggle-label" [class.active]="billingCycle === 'monthly'">Monthly</span>
+      <button mat-button class="toggle-switch" (click)="toggleBillingCycle()">
+        <div class="switch-track">
+          <div class="switch-thumb" [class.annual]="billingCycle === 'annual'"></div>
+        </div>
+      </button>
+      <span class="toggle-label" [class.active]="billingCycle === 'annual'">
+        Annual
+        <span class="savings-badge">Save up to 20%</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Plans Grid -->
+  <div class="plans-grid">
+    <mat-card *ngFor="let plan of plans" 
+              class="plan-card" 
+              [class.popular]="plan.badge"
+              [style.border-top-color]="plan.color">
+      
+      <!-- Badge -->
+      <div *ngIf="plan.badge" class="plan-badge" [style.background-color]="plan.color">
+        {{ plan.badge }}
+      </div>
+
+      <!-- Header -->
+      <div class="plan-header">
+        <h2>{{ plan.name }}</h2>
+        <div class="price-section">
+          <div class="price">
+            <span class="currency">$</span>
+            <span class="amount">{{ getPrice(plan) }}</span>
+            <span class="period">/mo</span>
+          </div>
+          <div *ngIf="billingCycle === 'annual'" class="annual-note">
+            Billed ${{ getPrice(plan) * 12 }}/year
+          </div>
+          <div *ngIf="billingCycle === 'annual'" class="savings">
+            Save ${{ getSavings(plan) }}/year ({{ getSavingsPercent(plan) }}%)
+          </div>
+        </div>
+      </div>
+
+      <!-- Features List -->
+      <div class="features-list">
+        <div *ngFor="let feature of plan.features" 
+             class="feature-item"
+             [class.included]="feature.included"
+             [class.excluded]="!feature.included"
+             [class.highlight]="feature.highlight">
+          <mat-icon>{{ feature.included ? 'check_circle' : 'cancel' }}</mat-icon>
+          <span>{{ feature.text }}</span>
+        </div>
+      </div>
+
+      <!-- CTA Button -->
+      <button mat-raised-button 
+              class="cta-button"
+              [style.background-color]="plan.color"
+              (click)="selectPlan(plan.tier)">
+        {{ plan.cta }}
+      </button>
+
+      <!-- Trial Note -->
+      <p class="trial-note">Includes 7-day Pro trial</p>
+    </mat-card>
+  </div>
+
+  <!-- FAQ Section -->
+  <div class="faq-section">
+    <h2>Frequently Asked Questions</h2>
+    
+    <mat-accordion>
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            How does the 7-day free trial work?
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        <p>
+          Your 7-day free trial gives you full Pro access to experience all features. 
+          No credit card required to start. After the trial, you'll be prompted to choose 
+          a subscription plan to continue using the platform.
+        </p>
+      </mat-expansion-panel>
+
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            Can I change plans later?
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        <p>
+          Yes! You can upgrade or downgrade at any time. When you upgrade, you'll get 
+          immediate access to new features. When you downgrade, changes take effect at 
+          the end of your current billing cycle.
+        </p>
+      </mat-expansion-panel>
+
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            What happens if I exceed my plan limits?
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        <p>
+          If you reach your monthly limits (trades, analyses, or optimizations), you'll 
+          be prompted to upgrade to a higher tier. Your existing data is never deleted - 
+          you just can't add more until you upgrade or the next month starts.
+        </p>
+      </mat-expansion-panel>
+
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            Do you offer refunds?
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        <p>
+          We offer a 30-day money-back guarantee. If you're not satisfied within the 
+          first 30 days of your paid subscription, contact us for a full refund.
+        </p>
+      </mat-expansion-panel>
+
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            What payment methods do you accept?
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        <p>
+          We accept all major credit cards (Visa, Mastercard, American Express, Discover) 
+          via Stripe. All payments are processed securely with industry-standard encryption.
+        </p>
+      </mat-expansion-panel>
+
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            Can I cancel anytime?
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        <p>
+          Absolutely! You can cancel your subscription at any time from your account settings. 
+          You'll continue to have access until the end of your billing period.
+        </p>
+      </mat-expansion-panel>
+    </mat-accordion>
+  </div>
+
+  <!-- Trust Signals -->
+  <div class="trust-section">
+    <div class="trust-item">
+      <mat-icon>verified_user</mat-icon>
+      <span>Secure SSL Encryption</span>
+    </div>
+    <div class="trust-item">
+      <mat-icon>credit_card</mat-icon>
+      <span>Powered by Stripe</span>
+    </div>
+    <div class="trust-item">
+      <mat-icon>support_agent</mat-icon>
+      <span>24/7 Email Support</span>
+    </div>
+    <div class="trust-item">
+      <mat-icon>cancel</mat-icon>
+      <span>Cancel Anytime</span>
+    </div>
+  </div>
+</div>

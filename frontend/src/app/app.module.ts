@@ -28,6 +28,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatSortModule } from '@angular/material/sort';
+import { MatPaginatorModule } from '@angular/material/paginator';
 
 // App Components
 import { AppComponent } from './app.component';
@@ -43,6 +45,7 @@ import { PasswordRequirementsComponent } from './components/password-requirement
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { AboutComponent } from './components/about/about.component';
 import { TradeTrackerComponent } from './components/trade-tracker/trade-tracker.component';
+import { PricingComponent } from './components/pricing/pricing.component';
 
 // Services
 import { AuthService } from './services/auth.service';
@@ -69,7 +72,8 @@ import { ErrorInterceptor } from './interceptors/error.interceptor';
     PasswordRequirementsComponent,
     DashboardComponent,
     AboutComponent,
-    TradeTrackerComponent
+    TradeTrackerComponent,
+    PricingComponent
   ],
   imports: [
     BrowserModule,
@@ -102,7 +106,9 @@ import { ErrorInterceptor } from './interceptors/error.interceptor';
     MatCheckboxModule,
     MatExpansionModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
+    MatSortModule,
+    MatPaginatorModule
   ],
   providers: [
     AuthService,

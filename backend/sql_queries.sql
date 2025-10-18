@@ -1,6 +1,7 @@
 use StockPxLabs;
 -- Drop tables if they exist (in correct order - child tables first, then parents)
 DROP TABLE IF EXISTS user_trades;
+DROP TABLE IF EXISTS user_usage;
 DROP TABLE IF EXISTS user_preferences;
 DROP TABLE IF EXISTS stock_performance_metrics;
 DROP TABLE IF EXISTS daily_stock_data;
@@ -66,10 +67,15 @@ CREATE TABLE IF NOT EXISTS user_preferences (
     position_sizing_percentage DECIMAL(5,2) DEFAULT 5.0,
     trades_columns JSON,
     favorite_stocks JSON DEFAULT NULL,
+    subscription_tier VARCHAR(20) DEFAULT 'basic',
+    trial_ends_at DATETIME NULL,
+    subscription_status ENUM('trial', 'active', 'cancelled', 'expired') DEFAULT 'trial',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id)
+    INDEX idx_user_id (user_id),
+    INDEX idx_subscription_tier (subscription_tier),
+    INDEX idx_subscription_status (subscription_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create daily_stock_data table (depends on stock_symbols)
@@ -95,6 +101,7 @@ CREATE TABLE IF NOT EXISTS stock_performance_metrics (
     id INT AUTO_INCREMENT PRIMARY KEY,
     symbol_id INT NOT NULL,
     analysis_date DATE NOT NULL,
+    time_period VARCHAR(10) NOT NULL DEFAULT 'ALL',
     total_return_pct DECIMAL(8,2),
     total_pnl DECIMAL(15,2),
     win_rate DECIMAL(5,2),
@@ -104,11 +111,26 @@ CREATE TABLE IF NOT EXISTS stock_performance_metrics (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (symbol_id) REFERENCES stock_symbols(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_symbol_analysis_date (symbol_id, analysis_date),
+    UNIQUE KEY unique_symbol_analysis_period (symbol_id, analysis_date, time_period),
     INDEX idx_symbol_analysis_date (symbol_id, analysis_date),
     INDEX idx_analysis_date (analysis_date),
+    INDEX idx_time_period (time_period),
     INDEX idx_total_return (total_return_pct),
     INDEX idx_sharpe_ratio (sharpe_ratio)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create user_usage table for tracking monthly quotas (depends on users)
+CREATE TABLE IF NOT EXISTS user_usage (
+    user_id INT NOT NULL,
+    month DATE NOT NULL,
+    trades_count INT DEFAULT 0,
+    ema_analyses_count INT DEFAULT 0,
+    ma_optimizations_count INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, month),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_month (month)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create user_trades table (depends on users)

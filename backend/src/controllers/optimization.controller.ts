@@ -7,6 +7,7 @@ import { Router, Request, Response } from 'express';
 import { MATradingEngine, StockData } from '../services/trading-engine.service';
 import { getStockData } from '../utils/database';
 import { asyncHandler, createError } from '../middleware/error.middleware';
+import { authMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -309,7 +310,7 @@ export class MAOptimizer {
 /**
  * Optimize MA pairs for a specific symbol
  */
-router.get('/optimize/:symbol', asyncHandler(async (req: Request, res: Response) => {
+router.get('/optimize/:symbol', authMiddleware, asyncHandler(async (req: Request, res: Response) => {
   const { symbol } = req.params;
   const days = parseInt(req.query.days as string) || 365;
   const fastRangeStr = (req.query.fast_range as string) || '5,30';
@@ -399,7 +400,7 @@ router.get('/optimize/:symbol', asyncHandler(async (req: Request, res: Response)
 /**
  * Compare specific MA pairs for a symbol
  */
-router.get('/compare-pairs/:symbol', asyncHandler(async (req: Request, res: Response) => {
+router.get('/compare-pairs/:symbol', authMiddleware, asyncHandler(async (req: Request, res: Response) => {
   const { symbol } = req.params;
   const pairsStr = (req.query.pairs as string) || '10,20|21,50|30,60';
   const days = parseInt(req.query.days as string) || 365;
@@ -464,7 +465,7 @@ router.get('/compare-pairs/:symbol', asyncHandler(async (req: Request, res: Resp
 /**
  * Generate data for MA pair performance heatmap
  */
-router.get('/heatmap/:symbol', asyncHandler(async (req: Request, res: Response) => {
+router.get('/heatmap/:symbol', authMiddleware, asyncHandler(async (req: Request, res: Response) => {
   const { symbol } = req.params;
   const days = parseInt(req.query.days as string) || 365;
   const fastRangeStr = (req.query.fast_range as string) || '5,30';
