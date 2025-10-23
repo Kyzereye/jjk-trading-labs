@@ -72,6 +72,7 @@ router.get('/:id', authMiddleware, asyncHandler(async (req: AuthRequest, res: Re
 router.post('/', authMiddleware, asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user!.id;
   const {
+    position_type,
     symbol,
     entry_date,
     entry_price,
@@ -109,13 +110,14 @@ router.post('/', authMiddleware, asyncHandler(async (req: AuthRequest, res: Resp
 
   const query = `
     INSERT INTO user_trades 
-    (user_id, symbol, entry_date, entry_price, shares, stop_loss, target_price, trade_notes, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')
+    (user_id, symbol, position_type, entry_date, entry_price, shares, stop_loss, target_price, trade_notes, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')
   `;
 
   const [result] = await dbService.execute(query, [
     userId,
     symbol.toUpperCase(),
+    position_type || 'long',
     formatDate(entry_date),
     entry_price,
     shares,
@@ -138,6 +140,7 @@ router.put('/:id', authMiddleware, asyncHandler(async (req: AuthRequest, res: Re
   const userId = req.user!.id;
   const tradeId = parseInt(req.params.id);
   const {
+    position_type,
     symbol,
     entry_date,
     entry_price,
@@ -152,7 +155,7 @@ router.put('/:id', authMiddleware, asyncHandler(async (req: AuthRequest, res: Re
 
   // Verify trade belongs to user
   const [existing] = await dbService.execute(
-    'SELECT id, entry_price, shares FROM user_trades WHERE id = ? AND user_id = ?',
+    'SELECT id, entry_price, shares, position_type FROM user_trades WHERE id = ? AND user_id = ?',
     [tradeId, userId]
   );
 
@@ -177,14 +180,25 @@ router.put('/:id', authMiddleware, asyncHandler(async (req: AuthRequest, res: Re
   if (exit_price && exit_date) {
     const actualEntryPrice = entry_price || existingTrade.entry_price;
     const actualShares = shares || existingTrade.shares;
-    pnl = (exit_price - actualEntryPrice) * actualShares;
-    pnlPercent = ((exit_price - actualEntryPrice) / actualEntryPrice) * 100;
+    const actualPositionType = position_type || existingTrade.position_type || 'long';
+    
+    if (actualPositionType === 'long') {
+      // Long: Profit when exit > entry
+      pnl = (exit_price - actualEntryPrice) * actualShares;
+      pnlPercent = ((exit_price - actualEntryPrice) / actualEntryPrice) * 100;
+    } else {
+      // Short: Profit when entry > exit (REVERSED!)
+      pnl = (actualEntryPrice - exit_price) * actualShares;
+      pnlPercent = ((actualEntryPrice - exit_price) / actualEntryPrice) * 100;
+    }
+    
     tradeStatus = 'closed';
   }
 
   const query = `
     UPDATE user_trades SET
       symbol = ?,
+      position_type = ?,
       entry_date = ?,
       entry_price = ?,
       shares = ?,
@@ -207,6 +221,7 @@ router.put('/:id', authMiddleware, asyncHandler(async (req: AuthRequest, res: Re
 
   await dbService.execute(query, [
     symbol ? symbol.toUpperCase() : existingTrade.symbol,
+    position_type || existingTrade.position_type || 'long',
     entry_date ? formatDate(entry_date) : existingTrade.entry_date,
     entry_price || existingTrade.entry_price,
     shares || existingTrade.shares,

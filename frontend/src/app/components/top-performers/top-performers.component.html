@@ -39,6 +39,15 @@
             </mat-option>
           </mat-select>
         </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Strategy Mode</mat-label>
+          <mat-select [(ngModel)]="strategyMode" (selectionChange)="onTimePeriodChange()">
+            <mat-option *ngFor="let mode of strategyModes" [value]="mode.value">
+              {{ mode.label }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
       </div>
     </mat-card-content>
   </mat-card>
@@ -117,6 +126,11 @@
                   (click)="analyzeStock(performer.symbol)"
                   matTooltip="Analyze {{ performer.symbol }}">
             <mat-icon>insights</mat-icon>
+          </button>
+          <button mat-icon-button 
+                  (click)="addTrade(performer.symbol)"
+                  matTooltip="Add Trade for {{ performer.symbol }}">
+            <mat-icon>add</mat-icon>
           </button>
         </mat-cell>
       </ng-container>

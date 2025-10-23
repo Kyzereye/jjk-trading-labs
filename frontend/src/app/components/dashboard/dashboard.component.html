@@ -63,115 +63,152 @@
     </div>
 
     <!-- Trade Tracker - Full Width -->
-    <app-trade-tracker></app-trade-tracker>
+    <mat-expansion-panel 
+      [expanded]="shouldExpandTradeTracker()"
+      (opened)="tradeTrackerPanelExpanded = true"
+      (closed)="tradeTrackerPanelExpanded = false"
+      class="trade-tracker-panel full-width">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon>track_changes</mat-icon>
+          Trade Tracker
+          <span *ngIf="getTradeCount() > 0" class="count-badge">{{ getTradeCount() }}</span>
+        </mat-panel-title>
+        <mat-panel-description *ngIf="!hasTrades()">
+          No trades yet
+        </mat-panel-description>
+        <div class="panel-actions" *ngIf="!isTradeFormVisible()">
+          <button mat-icon-button (click)="showAddTradeForm(); $event.stopPropagation()" 
+                  matTooltip="Add New Trade">
+            <mat-icon>add</mat-icon>
+          </button>
+        </div>
+      </mat-expansion-panel-header>
+      
+      <div class="panel-content">
+        <app-trade-tracker [symbol]="tradeSymbol"></app-trade-tracker>
+      </div>
+    </mat-expansion-panel>
 
     <!-- Favorite Stocks Watchlist - Full Width -->
-    <mat-card class="watchlist-card full-width">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>star</mat-icon>
-            Favorite Stocks Watchlist
-          </mat-card-title>
+    <mat-expansion-panel 
+      [expanded]="favoriteStocks.length > 0"
+      class="watchlist-panel full-width">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon>star</mat-icon>
+          Favorite Stocks Watchlist
+          <span *ngIf="favoriteStocks.length > 0" class="count-badge">{{ favoriteStocks.length }}</span>
+        </mat-panel-title>
+        <mat-panel-description *ngIf="favoriteStocks.length === 0">
+          No favorite stocks yet
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      
+      <div class="panel-content">
+        <!-- Empty State -->
+        <div *ngIf="favoriteStocks.length === 0" class="empty-favorites">
+          <mat-icon>star_border</mat-icon>
+          <h3>No Favorite Stocks Yet</h3>
+        </div>
 
-        </mat-card-header>
-        <mat-card-content>
-          <!-- Empty State -->
-          <div *ngIf="favoriteStocks.length === 0" class="empty-favorites">
-            <mat-icon>star_border</mat-icon>
-            <h3>No Favorite Stocks Yet</h3>
-          </div>
+        <!-- Favorites Table -->
+        <mat-table *ngIf="favoriteStocks.length > 0" [dataSource]="favoriteStocks" class="favorites-table">
+          <ng-container matColumnDef="symbol">
+            <mat-header-cell *matHeaderCellDef>Symbol</mat-header-cell>
+            <mat-cell *matCellDef="let stock">
+              <strong>{{ stock.symbol }}</strong>
+            </mat-cell>
+          </ng-container>
 
-          <!-- Favorites Table -->
-          <mat-table *ngIf="favoriteStocks.length > 0" [dataSource]="favoriteStocks" class="favorites-table">
-            <ng-container matColumnDef="symbol">
-              <mat-header-cell *matHeaderCellDef>Symbol</mat-header-cell>
-              <mat-cell *matCellDef="let stock">
-                <strong>{{ stock.symbol }}</strong>
-              </mat-cell>
-            </ng-container>
+          <ng-container matColumnDef="price">
+            <mat-header-cell *matHeaderCellDef>Price</mat-header-cell>
+            <mat-cell *matCellDef="let stock">
+              {{ stock.latest_price ? formatCurrency(stock.latest_price) : '-' }}
+            </mat-cell>
+          </ng-container>
 
-            <ng-container matColumnDef="price">
-              <mat-header-cell *matHeaderCellDef>Price</mat-header-cell>
-              <mat-cell *matCellDef="let stock">
-                {{ stock.latest_price ? formatCurrency(stock.latest_price) : '-' }}
-              </mat-cell>
-            </ng-container>
+          <ng-container matColumnDef="ma21">
+            <mat-header-cell *matHeaderCellDef>21 MA</mat-header-cell>
+            <mat-cell *matCellDef="let stock">
+              {{ stock.ma_21 ? formatCurrency(stock.ma_21) : '-' }}
+            </mat-cell>
+          </ng-container>
 
-            <ng-container matColumnDef="ma21">
-              <mat-header-cell *matHeaderCellDef>21 MA</mat-header-cell>
-              <mat-cell *matCellDef="let stock">
-                {{ stock.ma_21 ? formatCurrency(stock.ma_21) : '-' }}
-              </mat-cell>
-            </ng-container>
+          <ng-container matColumnDef="ma50">
+            <mat-header-cell *matHeaderCellDef>50 MA</mat-header-cell>
+            <mat-cell *matCellDef="let stock">
+              {{ stock.ma_50 ? formatCurrency(stock.ma_50) : '-' }}
+            </mat-cell>
+          </ng-container>
 
-            <ng-container matColumnDef="ma50">
-              <mat-header-cell *matHeaderCellDef>50 MA</mat-header-cell>
-              <mat-cell *matCellDef="let stock">
-                {{ stock.ma_50 ? formatCurrency(stock.ma_50) : '-' }}
-              </mat-cell>
-            </ng-container>
+          <ng-container matColumnDef="lastSignal">
+            <mat-header-cell *matHeaderCellDef>Last Signal</mat-header-cell>
+            <mat-cell *matCellDef="let stock">
+              <span class="signal-badge" 
+                    [ngClass]="{
+                      'buy-signal': stock.last_signal_color === 'buy',
+                      'sell-signal': stock.last_signal_color === 'sell',
+                      'alert-badge': stock.last_signal_color === 'alert',
+                      'neutral-badge': stock.last_signal_color === 'neutral'
+                    }">
+                {{ stock.last_signal || '-' }}
+              </span>
+            </mat-cell>
+          </ng-container>
 
-            <ng-container matColumnDef="lastSignal">
-              <mat-header-cell *matHeaderCellDef>Last Signal</mat-header-cell>
-              <mat-cell *matCellDef="let stock">
-                <span class="signal-badge" 
-                      [ngClass]="{
-                        'buy-signal': stock.last_signal_color === 'buy',
-                        'sell-signal': stock.last_signal_color === 'sell',
-                        'alert-badge': stock.last_signal_color === 'alert',
-                        'neutral-badge': stock.last_signal_color === 'neutral'
-                      }">
-                  {{ stock.last_signal || '-' }}
-                </span>
-              </mat-cell>
-            </ng-container>
+          <ng-container matColumnDef="status">
+            <mat-header-cell *matHeaderCellDef>Market Status</mat-header-cell>
+            <mat-cell *matCellDef="let stock">
+              <span class="status-text" 
+                    [ngClass]="{
+                      'status-success': stock.status_color === 'success',
+                      'status-warning': stock.status_color === 'warning',
+                      'status-info': stock.status_color === 'info',
+                      'status-neutral': stock.status_color === 'neutral'
+                    }">
+                {{ stock.status || 'Loading...' }}
+              </span>
+            </mat-cell>
+          </ng-container>
 
-            <ng-container matColumnDef="status">
-              <mat-header-cell *matHeaderCellDef>Market Status</mat-header-cell>
-              <mat-cell *matCellDef="let stock">
-                <span class="status-text" 
-                      [ngClass]="{
-                        'status-success': stock.status_color === 'success',
-                        'status-warning': stock.status_color === 'warning',
-                        'status-info': stock.status_color === 'info',
-                        'status-neutral': stock.status_color === 'neutral'
-                      }">
-                  {{ stock.status || 'Loading...' }}
-                </span>
-              </mat-cell>
-            </ng-container>
+          <ng-container matColumnDef="action">
+            <mat-header-cell *matHeaderCellDef>Action</mat-header-cell>
+            <mat-cell *matCellDef="let stock">
+              <button mat-raised-button 
+                      color="primary" 
+                      size="small"
+                      (click)="runQuickAnalysis(stock.symbol)">
+                Analyze
+              </button>
+            </mat-cell>
+          </ng-container>
 
-            <ng-container matColumnDef="action">
-              <mat-header-cell *matHeaderCellDef>Action</mat-header-cell>
-              <mat-cell *matCellDef="let stock">
-                <button mat-raised-button 
-                        color="primary" 
-                        size="small"
-                        (click)="runQuickAnalysis(stock.symbol)">
-                  Analyze
-                </button>
-              </mat-cell>
-            </ng-container>
-
-            <mat-header-row *matHeaderRowDef="['symbol', 'price', 'ma21', 'ma50', 'lastSignal', 'status', 'action']"></mat-header-row>
-            <mat-row *matRowDef="let row; columns: ['symbol', 'price', 'ma21', 'ma50', 'lastSignal', 'status', 'action'];"></mat-row>
-          </mat-table>
-        </mat-card-content>
-    </mat-card>
+          <mat-header-row *matHeaderRowDef="['symbol', 'price', 'ma21', 'ma50', 'lastSignal', 'status', 'action']"></mat-header-row>
+          <mat-row *matRowDef="let row; columns: ['symbol', 'price', 'ma21', 'ma50', 'lastSignal', 'status', 'action'];"></mat-row>
+        </mat-table>
+      </div>
+    </mat-expansion-panel>
 
     <!-- Main Content Grid -->
     <div class="content-grid">
 
       <!-- Recent Analyses -->
-      <mat-card class="recent-card">
-        <mat-card-header>
-          <mat-card-title>
+      <mat-expansion-panel 
+        [expanded]="recentAnalyses.length > 0"
+        class="recent-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
             <mat-icon>history</mat-icon>
             Recent Analyses
-          </mat-card-title>
-          <mat-card-subtitle>Your latest trading analysis results</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
+            <span *ngIf="recentAnalyses.length > 0" class="count-badge">{{ recentAnalyses.length }}</span>
+          </mat-panel-title>
+          <mat-panel-description *ngIf="recentAnalyses.length === 0">
+            No recent analyses yet
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+        
+        <div class="panel-content">
           <div *ngIf="recentAnalyses.length === 0" class="empty-state">
             <mat-icon>insights</mat-icon>
             <p>No recent analyses yet</p>
@@ -196,8 +233,8 @@
               <div class="recent-date">{{ analysis.date | date:'short' }}</div>
             </div>
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </mat-expansion-panel>
 
     </div>
 

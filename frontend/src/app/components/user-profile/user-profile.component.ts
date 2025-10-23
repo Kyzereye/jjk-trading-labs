@@ -110,10 +110,14 @@ export class UserProfileComponent implements OnInit {
     this.preferencesForm = this.fb.group({
       default_days: [365, [Validators.min(30), Validators.max(1095)]],
       default_atr_period: [14, [Validators.min(5), Validators.max(50)]],
-      default_atr_multiplier: [2.0, [Validators.min(0.5), Validators.max(5.0)]],
+      default_fast_ma: [21, [Validators.min(5), Validators.max(50)]],
+      default_slow_ma: [50, [Validators.min(20), Validators.max(200)]],
       default_ma_type: ['ema'],
       default_initial_capital: [100000, [Validators.min(1000), Validators.max(10000000)]],
-      position_sizing_percentage: [5.0, [Validators.min(1), Validators.max(20)]],
+      position_sizing_long: [5.0, [Validators.min(1), Validators.max(10)]],
+      position_sizing_short: [3.0, [Validators.min(1), Validators.max(5)]],
+      atr_multiplier_long: [2.0, [Validators.min(0.5), Validators.max(5.0)]],
+      atr_multiplier_short: [1.5, [Validators.min(0.5), Validators.max(5.0)]],
       mean_reversion_threshold: [10.0, [Validators.min(3), Validators.max(15)]]
     });
   }
@@ -211,7 +215,6 @@ export class UserProfileComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading profile:', error);
         this.snackBar.open('Failed to load profile: ' + error.message, 'Close', { duration: 5000 });
         this.loading = false;
       }
@@ -230,7 +233,6 @@ export class UserProfileComponent implements OnInit {
           this.saving = false;
         },
         error: (error) => {
-          console.error('Error updating profile:', error);
           this.snackBar.open('Failed to update profile', 'Close', { duration: 3000 });
           this.saving = false;
         }
@@ -243,10 +245,14 @@ export class UserProfileComponent implements OnInit {
     this.preferencesForm.patchValue({
       default_days: 365,
       default_atr_period: 14,
-      default_atr_multiplier: 2.0,
+      default_fast_ma: 21,
+      default_slow_ma: 50,
       default_ma_type: 'ema',
       default_initial_capital: 100000,
-      position_sizing_percentage: 5.0,
+      position_sizing_long: 5.0,
+      position_sizing_short: 3.0,
+      atr_multiplier_long: 2.0,
+      atr_multiplier_short: 1.5,
       mean_reversion_threshold: 10.0
     });
     
@@ -287,7 +293,6 @@ export class UserProfileComponent implements OnInit {
           });
         },
         error: (error) => {
-          console.error('Error updating preferences:', error);
           this.snackBar.open('Failed to update preferences', 'Close', { duration: 3000 });
           this.saving = false;
         }
@@ -311,10 +316,9 @@ export class UserProfileComponent implements OnInit {
           this.passwordForm.reset();
           this.saving = false;
         },
-        error: (error) => {
-          console.error('Error changing password:', error);
-          this.message = { type: 'error', text: 'Failed to change password' };
-          this.saving = false;
+      error: (error) => {
+        this.message = { type: 'error', text: 'Failed to change password' };
+        this.saving = false;
         }
       });
     }
@@ -334,7 +338,6 @@ export class UserProfileComponent implements OnInit {
         this.saving = false;
       },
       error: (error) => {
-        console.error('Error updating column preferences:', error);
         this.message = { type: 'error', text: 'Failed to save column preferences' };
         this.saving = false;
       }

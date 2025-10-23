@@ -154,97 +154,211 @@
             <mat-card-content>
               <form [formGroup]="preferencesForm" class="preferences-form">
                 
-                <!-- Default Analysis Period -->
-                <div class="slider-section">
-                  <h3>Default Analysis Period: {{ preferencesForm.get('default_days')?.value }} days</h3>
-                  <mat-slider min="30" max="1095" step="30">
-                    <input matSliderThumb formControlName="default_days">
-                  </mat-slider>
-                  <div class="slider-marks">
-                    <span>30d</span>
-                    <span>1y</span>
-                    <span>2y</span>
-                    <span>3y</span>
-                  </div>
-                </div>
+                <mat-accordion multi>
+                  
+                  <!-- Position Sizing Panel -->
+                  <mat-expansion-panel [expanded]="true">
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        <mat-icon>pie_chart</mat-icon>
+                        Position Sizing
+                      </mat-panel-title>
+                      <mat-panel-description>
+                        How much capital to risk per trade
+                      </mat-panel-description>
+                    </mat-expansion-panel-header>
 
-                <mat-divider></mat-divider>
+                    <!-- Long Position Sizing -->
+                    <div class="slider-section">
+                      <h3>Long Positions: {{ preferencesForm.get('position_sizing_long')?.value }}% of capital</h3>
+                      <mat-slider min="1" max="10" step="0.5">
+                        <input matSliderThumb formControlName="position_sizing_long">
+                      </mat-slider>
+                      <div class="slider-marks">
+                        <span>1%</span>
+                        <span>5%</span>
+                        <span>10%</span>
+                      </div>
+                      <p class="slider-hint">Recommended: 3-5% for most traders</p>
+                    </div>
 
-                <!-- ATR Period -->
-                <div class="slider-section">
-                  <h3>ATR Period: {{ preferencesForm.get('default_atr_period')?.value }}</h3>
-                  <mat-slider min="5" max="50" step="1">
-                    <input matSliderThumb formControlName="default_atr_period">
-                  </mat-slider>
-                  <div class="slider-marks">
-                    <span>5</span>
-                    <span>14</span>
-                    <span>30</span>
-                    <span>50</span>
-                  </div>
-                </div>
+                    <mat-divider class="panel-divider"></mat-divider>
 
-                <!-- ATR Multiplier -->
-                <div class="slider-section">
-                  <h3>ATR Multiplier: {{ preferencesForm.get('default_atr_multiplier')?.value }}</h3>
-                  <mat-slider min="0.5" max="5.0" step="0.1">
-                    <input matSliderThumb formControlName="default_atr_multiplier">
-                  </mat-slider>
-                  <div class="slider-marks">
-                    <span>0.5</span>
-                    <span>2.0</span>
-                    <span>5.0</span>
-                  </div>
-                </div>
+                    <!-- Short Position Sizing -->
+                    <div class="slider-section">
+                      <h3>Short Positions: {{ preferencesForm.get('position_sizing_short')?.value }}% of capital</h3>
+                      <mat-slider min="1" max="5" step="0.5">
+                        <input matSliderThumb formControlName="position_sizing_short">
+                      </mat-slider>
+                      <div class="slider-marks">
+                        <span>1%</span>
+                        <span>3%</span>
+                        <span>5%</span>
+                      </div>
+                      <p class="slider-hint">⚠️ Shorts are riskier - kept smaller (max 5%)</p>
+                    </div>
+                  </mat-expansion-panel>
 
-                <mat-divider></mat-divider>
+                  <!-- Risk Management Panel -->
+                  <mat-expansion-panel>
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        <mat-icon>shield</mat-icon>
+                        Risk Management
+                      </mat-panel-title>
+                      <mat-panel-description>
+                        Stop loss and ATR settings
+                      </mat-panel-description>
+                    </mat-expansion-panel-header>
 
-                <!-- MA Type -->
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Default MA Type</mat-label>
-                  <mat-select formControlName="default_ma_type">
-                    <mat-option value="ema">EMA (Exponential Moving Average)</mat-option>
-                    <mat-option value="sma">SMA (Simple Moving Average)</mat-option>
-                  </mat-select>
-                </mat-form-field>
+                    <!-- ATR Period -->
+                    <div class="slider-section">
+                      <h3>ATR Period: {{ preferencesForm.get('default_atr_period')?.value }} days</h3>
+                      <mat-slider min="5" max="50" step="1">
+                        <input matSliderThumb formControlName="default_atr_period">
+                      </mat-slider>
+                      <div class="slider-marks">
+                        <span>5</span>
+                        <span>14</span>
+                        <span>30</span>
+                        <span>50</span>
+                      </div>
+                      <p class="slider-hint">Average True Range calculation period</p>
+                    </div>
 
-                <!-- Initial Capital -->
-                <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Default Initial Capital</mat-label>
-                  <input matInput type="number" formControlName="default_initial_capital" placeholder="100000">
-                  <span matPrefix>$&nbsp;</span>
-                  <mat-hint>Starting capital for backtesting</mat-hint>
-                </mat-form-field>
+                    <mat-divider class="panel-divider"></mat-divider>
 
-                <!-- Mean Reversion Threshold -->
-                <div class="slider-section">
-                  <h3>Mean Reversion Threshold: {{ preferencesForm.get('mean_reversion_threshold')?.value }}%</h3>
-                  <mat-slider min="3" max="15" step="0.5">
-                    <input matSliderThumb formControlName="mean_reversion_threshold">
-                  </mat-slider>
-                  <div class="slider-marks">
-                    <span>3%</span>
-                    <span>7%</span>
-                    <span>10%</span>
-                    <span>15%</span>
-                  </div>
-                </div>
+                    <!-- ATR Multiplier - Long -->
+                    <div class="slider-section">
+                      <h3>ATR Multiplier - Long: {{ preferencesForm.get('atr_multiplier_long')?.value }}x</h3>
+                      <mat-slider min="0.5" max="5.0" step="0.1">
+                        <input matSliderThumb formControlName="atr_multiplier_long">
+                      </mat-slider>
+                      <div class="slider-marks">
+                        <span>0.5x</span>
+                        <span>2.0x</span>
+                        <span>5.0x</span>
+                      </div>
+                      <p class="slider-hint">Higher = wider stops, more room to breathe</p>
+                    </div>
 
-                <!-- Position Sizing -->
-                <div class="slider-section">
-                  <h3>Position Sizing: {{ preferencesForm.get('position_sizing_percentage')?.value }}% of capital per trade</h3>
-                  <mat-slider min="1" max="20" step="0.5">
-                    <input matSliderThumb formControlName="position_sizing_percentage">
-                  </mat-slider>
-                  <div class="slider-marks">
-                    <span>1%</span>
-                    <span>5%</span>
-                    <span>10%</span>
-                    <span>15%</span>
-                    <span>20%</span>
-                  </div>
-                  <p class="slider-hint">Recommended: 1-5% for conservative, 5-10% for moderate, 10-20% for aggressive</p>
-                </div>
+                    <mat-divider class="panel-divider"></mat-divider>
+
+                    <!-- ATR Multiplier - Short -->
+                    <div class="slider-section">
+                      <h3>ATR Multiplier - Short: {{ preferencesForm.get('atr_multiplier_short')?.value }}x</h3>
+                      <mat-slider min="0.5" max="5.0" step="0.1">
+                        <input matSliderThumb formControlName="atr_multiplier_short">
+                      </mat-slider>
+                      <div class="slider-marks">
+                        <span>0.5x</span>
+                        <span>1.5x</span>
+                        <span>5.0x</span>
+                      </div>
+                      <p class="slider-hint">⚠️ Tighter stops recommended for shorts</p>
+                    </div>
+                  </mat-expansion-panel>
+
+                  <!-- Strategy Defaults Panel -->
+                  <mat-expansion-panel>
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        <mat-icon>tune</mat-icon>
+                        Strategy Defaults
+                      </mat-panel-title>
+                      <mat-panel-description>
+                        Analysis and backtesting parameters
+                      </mat-panel-description>
+                    </mat-expansion-panel-header>
+
+                    <!-- Analysis Period -->
+                    <div class="slider-section">
+                      <h3>Default Analysis Period: {{ preferencesForm.get('default_days')?.value }} days</h3>
+                      <mat-slider min="30" max="1095" step="30">
+                        <input matSliderThumb formControlName="default_days">
+                      </mat-slider>
+                      <div class="slider-marks">
+                        <span>30d</span>
+                        <span>1y</span>
+                        <span>2y</span>
+                        <span>3y</span>
+                      </div>
+                    </div>
+
+                    <mat-divider class="panel-divider"></mat-divider>
+
+                    <!-- MA Type -->
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Default MA Type</mat-label>
+                      <mat-select formControlName="default_ma_type">
+                        <mat-option value="ema">EMA (Exponential Moving Average)</mat-option>
+                        <mat-option value="sma">SMA (Simple Moving Average)</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+
+                    <mat-divider class="panel-divider"></mat-divider>
+
+                    <!-- Fast MA Period -->
+                    <div class="slider-section">
+                      <h3>Fast MA Period: {{ preferencesForm.get('default_fast_ma')?.value }}</h3>
+                      <mat-slider min="5" max="50" step="1">
+                        <input matSliderThumb formControlName="default_fast_ma">
+                      </mat-slider>
+                      <div class="slider-marks">
+                        <span>5</span>
+                        <span>21</span>
+                        <span>30</span>
+                        <span>50</span>
+                      </div>
+                      <p class="slider-hint">Entry/exit signal MA (default: 21)</p>
+                    </div>
+
+                    <mat-divider class="panel-divider"></mat-divider>
+
+                    <!-- Slow MA Period -->
+                    <div class="slider-section">
+                      <h3>Slow MA Period: {{ preferencesForm.get('default_slow_ma')?.value }}</h3>
+                      <mat-slider min="20" max="200" step="5">
+                        <input matSliderThumb formControlName="default_slow_ma">
+                      </mat-slider>
+                      <div class="slider-marks">
+                        <span>20</span>
+                        <span>50</span>
+                        <span>100</span>
+                        <span>200</span>
+                      </div>
+                      <p class="slider-hint">Trend filter MA (default: 50)</p>
+                    </div>
+
+                    <mat-divider class="panel-divider"></mat-divider>
+
+                    <!-- Initial Capital -->
+                    <mat-form-field appearance="outline" class="form-field">
+                      <mat-label>Default Initial Capital</mat-label>
+                      <input matInput type="number" formControlName="default_initial_capital" placeholder="100000">
+                      <span matPrefix>$&nbsp;</span>
+                      <mat-hint>Starting capital for backtesting</mat-hint>
+                    </mat-form-field>
+
+                    <mat-divider class="panel-divider"></mat-divider>
+
+                    <!-- Mean Reversion Threshold -->
+                    <div class="slider-section">
+                      <h3>Mean Reversion Threshold: {{ preferencesForm.get('mean_reversion_threshold')?.value }}%</h3>
+                      <mat-slider min="3" max="15" step="0.5">
+                        <input matSliderThumb formControlName="mean_reversion_threshold">
+                      </mat-slider>
+                      <div class="slider-marks">
+                        <span>3%</span>
+                        <span>7%</span>
+                        <span>10%</span>
+                        <span>15%</span>
+                      </div>
+                      <p class="slider-hint">Distance from MA to trigger mean reversion alerts</p>
+                    </div>
+                  </mat-expansion-panel>
+
+                </mat-accordion>
 
                 <div class="form-actions">
                   <button mat-button 

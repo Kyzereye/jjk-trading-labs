@@ -5,8 +5,10 @@
   "main": "dist/app.js",
   "scripts": {
     "start": "node dist/app.js",
+    "start:prod": "NODE_ENV=production node dist/app.js",
     "dev": "nodemon src/app.ts",
     "build": "tsc",
+    "build:prod": "NODE_ENV=production tsc",
     "test": "jest"
   },
   "dependencies": {

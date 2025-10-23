@@ -6,11 +6,14 @@ export interface EMAAnalysisRequest {
   symbol: string;
   initial_capital?: number;
   days?: number;
+  custom_fast_ma?: number;
+  custom_slow_ma?: number;
   atr_period?: number;
   atr_multiplier?: number;
   mean_reversion_threshold?: number;
   position_sizing_percentage?: number;
   ma_type?: string;
+  strategy_mode?: string;
 }
 
 export interface EMAAnalysisResponse {
@@ -78,6 +81,7 @@ export interface OptimizationRequest {
   atr_period?: number;
   atr_multiplier?: number;
   ma_type?: string;
+  strategy_mode?: string;
 }
 
 export interface OptimizationResponse {
@@ -196,6 +200,7 @@ export class ApiService {
     if (request.atr_period) params = params.set('atr_period', request.atr_period.toString());
     if (request.atr_multiplier) params = params.set('atr_multiplier', request.atr_multiplier.toString());
     if (request.ma_type) params = params.set('ma_type', request.ma_type);
+    if (request.strategy_mode) params = params.set('strategy_mode', request.strategy_mode);
 
     return this.http.get<OptimizationResponse>(`${this.API_URL}/optimization/optimize/${symbol}`, { params });
   }

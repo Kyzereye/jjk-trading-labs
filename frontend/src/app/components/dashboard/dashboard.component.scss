@@ -130,6 +130,65 @@
 }
 
 // Watchlist Card
+.trade-tracker-card {
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+  
+  mat-card-header {
+    padding: 20px 20px 15px;
+    border-bottom: 1px solid #dddddd;
+    
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      width: 100%;
+      
+      .title-section {
+        flex: 1;
+        
+        mat-card-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #66615b;
+          font-size: 18px;
+          font-weight: 500;
+          margin: 0;
+          
+          mat-icon {
+            color: #51cbce;
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+          }
+        }
+        
+        mat-card-subtitle {
+          color: #9a9a9a;
+          font-size: 14px;
+          font-weight: 300;
+          margin: 5px 0 0 0;
+        }
+      }
+      
+      .action-section {
+        flex-shrink: 0;
+        margin-left: 20px;
+        
+        button {
+          margin: 0;
+        }
+      }
+    }
+  }
+  
+  mat-card-content {
+    padding: 0;
+  }
+}
+
 .watchlist-card {
   background-color: #ffffff;
   border-radius: 6px;
@@ -540,6 +599,79 @@
   
   .watchlist-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+// Expansion Panels
+mat-expansion-panel {
+  background-color: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.15);
+  margin-bottom: 20px;
+  
+  &.full-width {
+    width: 100%;
+  }
+  
+  .mat-expansion-panel-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #dddddd;
+    
+    .mat-expansion-panel-header-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #66615b;
+      font-size: 18px;
+      font-weight: 500;
+      
+      mat-icon {
+        color: #51cbce;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+      
+      .count-badge {
+        background-color: #51cbce;
+        color: white;
+        border-radius: 12px;
+        padding: 2px 8px;
+        font-size: 12px;
+        font-weight: 500;
+        margin-left: 8px;
+      }
+    }
+    
+    .mat-expansion-panel-header-description {
+      color: #9a9a9a;
+      font-size: 14px;
+      font-weight: 300;
+    }
+    
+    .panel-actions {
+      margin-left: auto;
+      margin-right: 8px;
+      
+      button {
+        margin: 0;
+      }
+    }
+  }
+  
+  .mat-expansion-panel-body {
+    padding: 0;
+  }
+  
+  .panel-content {
+    padding: 20px 24px;
+  }
+}
+
+// Trade Tracker Panel
+.trade-tracker-panel {
+  .panel-content {
+    padding: 0;
   }
 }
 

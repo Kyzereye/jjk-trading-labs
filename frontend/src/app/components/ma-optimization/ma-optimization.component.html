@@ -57,6 +57,17 @@
               </mat-option>
             </mat-select>
           </mat-form-field>
+
+          <!-- Strategy Mode -->
+          <mat-form-field appearance="outline">
+            <mat-label>Strategy Mode</mat-label>
+            <mat-select formControlName="strategyMode">
+              <mat-option *ngFor="let mode of strategyModes" [value]="mode.value">
+                {{ mode.label }}
+              </mat-option>
+            </mat-select>
+            <mat-hint>Optimize for long, short, or both</mat-hint>
+          </mat-form-field>
         </div>
 
         <!-- Fast MA Range -->

@@ -1,0 +1,23 @@
+# JJK Trading Labs - Update Commands
+# Run these commands when you want to update your deployed application
+
+# 1. Pull latest changes
+cd /var/www/jjktradinglabs
+git pull origin main
+
+# 2. Update backend dependencies (if needed)
+cd backend
+npm install --production
+
+# 3. Rebuild frontend
+cd ../frontend
+npm install
+npm run build:prod
+
+# 4. Restart backend
+cd ../backend
+pm2 restart jjk-trading-backend
+
+# 5. Check status
+pm2 status
+pm2 logs jjk-trading-backend --lines 20

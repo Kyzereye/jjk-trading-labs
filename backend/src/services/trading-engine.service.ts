@@ -5,7 +5,7 @@
 
 export interface MASignal {
   date: Date;
-  signal_type: 'BUY' | 'SELL';
+  signal_type: 'BUY' | 'SELL' | 'SELL_SHORT' | 'BUY_TO_COVER';
   price: number;
   ma_21: number;
   ma_50: number;
@@ -13,6 +13,7 @@ export interface MASignal {
   confidence: number;
   atr?: number;
   trailing_stop?: number;
+  position_type?: 'long' | 'short';
 }
 
 export interface MeanReversionAlert {
@@ -32,6 +33,7 @@ export interface MATrade {
   entry_signal: string;
   exit_signal: string;
   shares: number;
+  position_type: 'long' | 'short';
   pnl?: number;
   pnl_percent?: number;
   duration_days?: number;
@@ -77,29 +79,38 @@ export interface StockData {
 export class MATradingEngine {
   private initialCapital: number;
   private atrPeriod: number;
-  private atrMultiplier: number;
+  private atrMultiplierLong: number;
+  private atrMultiplierShort: number;
   private maType: string;
   private ma21Period: number;
   private ma50Period: number;
   private meanReversionThreshold: number;
-  private positionSizingPercentage: number;
+  private positionSizingLong: number;
+  private positionSizingShort: number;
+  private strategyMode: 'long' | 'short' | 'both';
 
   constructor(
     initialCapital: number = 100000,
     atrPeriod: number = 14,
-    atrMultiplier: number = 2.0,
+    atrMultiplierLong: number = 2.0,
+    atrMultiplierShort: number = 1.5,
     maType: string = 'ema',
     customFastMa?: number,
     customSlowMa?: number,
     meanReversionThreshold: number = 10.0,
-    positionSizingPercentage: number = 5.0
+    positionSizingLong: number = 5.0,
+    positionSizingShort: number = 3.0,
+    strategyMode: 'long' | 'short' | 'both' = 'long'
   ) {
     this.initialCapital = initialCapital;
     this.atrPeriod = atrPeriod;
-    this.atrMultiplier = atrMultiplier;
+    this.atrMultiplierLong = atrMultiplierLong;
+    this.atrMultiplierShort = atrMultiplierShort;
     this.maType = maType.toLowerCase();
     this.meanReversionThreshold = meanReversionThreshold;
-    this.positionSizingPercentage = positionSizingPercentage;
+    this.positionSizingLong = positionSizingLong;
+    this.positionSizingShort = positionSizingShort;
+    this.strategyMode = strategyMode;
 
     // Set MA periods
     if (customFastMa && customSlowMa) {
@@ -191,8 +202,6 @@ export class MATradingEngine {
    * Run Moving Average trading analysis
    */
   async runAnalysis(data: StockData[], symbol: string): Promise<MAResults> {
-    console.log(`Starting ${this.maType.toUpperCase()} analysis for ${symbol}`);
-
     if (data.length < this.ma50Period) {
       throw new Error(`Not enough data for ${this.maType.toUpperCase()} analysis. Need at least ${this.ma50Period} days`);
     }
@@ -205,8 +214,18 @@ export class MATradingEngine {
     const ma50 = this.calculateMA(closePrices, this.ma50Period);
     const atr = this.calculateATR(data, this.atrPeriod);
 
-    // Generate signals
-    const signals = this.generateSignals(data, ma21, ma50, atr);
+    // Generate signals based on strategy mode
+    let signals: MASignal[] = [];
+    
+    if (this.strategyMode === 'long') {
+      signals = this.generateLongSignals(data, ma21, ma50, atr);
+    } else if (this.strategyMode === 'short') {
+      signals = this.generateShortSignals(data, ma21, ma50, atr);
+    } else { // 'both'
+      const longSignals = this.generateLongSignals(data, ma21, ma50, atr);
+      const shortSignals = this.generateShortSignals(data, ma21, ma50, atr);
+      signals = [...longSignals, ...shortSignals].sort((a, b) => a.date.getTime() - b.date.getTime());
+    }
 
     // Execute trades
     const trades = this.executeTrades(data, signals);
@@ -241,7 +260,7 @@ export class MATradingEngine {
   /**
    * Generate Enhanced Moving Average trading signals with re-entry logic
    */
-  private generateSignals(data: StockData[], ma21: number[], ma50: number[], atr: number[]): MASignal[] {
+  private generateLongSignals(data: StockData[], ma21: number[], ma50: number[], atr: number[]): MASignal[] {
     const signals: MASignal[] = [];
     let inTrade = false;
     let currentTrailingStop: number | null = null;
@@ -282,7 +301,7 @@ export class MATradingEngine {
       if (isNewTrend) {
         // Primary entry: Price closes above 50 MA
         const confidence = Math.min(0.9, Math.abs(currentPrice - ma50Value) / ma50Value * 10);
-        currentTrailingStop = currentPrice - (atrValue * this.atrMultiplier);
+        currentTrailingStop = currentPrice - (atrValue * this.atrMultiplierLong);
         highestPriceSinceEntry = currentPrice;
         trendStartDate = date;
         reentryCount = 0;
@@ -296,14 +315,15 @@ export class MATradingEngine {
           reasoning: `Primary entry: Price ${currentPrice.toFixed(2)} closed above 50 ${this.maType.toUpperCase()} ${ma50Value.toFixed(2)}`,
           confidence,
           atr: atrValue,
-          trailing_stop: currentTrailingStop
+          trailing_stop: currentTrailingStop,
+          position_type: 'long'
         });
         inTrade = true;
 
       } else if (canReenter) {
         // Re-entry: Price closes above 21 MA after exit
         const confidence = Math.min(0.8, Math.abs(currentPrice - ma21Value) / ma21Value * 10);
-        currentTrailingStop = currentPrice - (atrValue * this.atrMultiplier);
+        currentTrailingStop = currentPrice - (atrValue * this.atrMultiplierLong);
         highestPriceSinceEntry = currentPrice;
         reentryCount++;
 
@@ -316,7 +336,8 @@ export class MATradingEngine {
           reasoning: `Re-entry #${reentryCount}: Price ${currentPrice.toFixed(2)} closed above 21 ${this.maType.toUpperCase()} ${ma21Value.toFixed(2)} (trend confirmed: 21 MA > 50 MA)`,
           confidence,
           atr: atrValue,
-          trailing_stop: currentTrailingStop
+          trailing_stop: currentTrailingStop,
+          position_type: 'long'
         });
         inTrade = true;
       }
@@ -326,7 +347,7 @@ export class MATradingEngine {
         // Update highest price since entry
         if (highestPriceSinceEntry === null || currentPrice > highestPriceSinceEntry) {
           highestPriceSinceEntry = currentPrice;
-          currentTrailingStop = highestPriceSinceEntry - (atrValue * this.atrMultiplier);
+          currentTrailingStop = highestPriceSinceEntry - (atrValue * this.atrMultiplierLong);
         }
 
         // Check for SELL signals
@@ -359,12 +380,150 @@ export class MATradingEngine {
             reasoning: sellReason,
             confidence,
             atr: atrValue,
-            trailing_stop: currentTrailingStop || undefined
+            trailing_stop: currentTrailingStop || undefined,
+            position_type: 'long'
           });
           inTrade = false;
           lastExitDate = date;
           currentTrailingStop = null;
           highestPriceSinceEntry = null;
+        }
+      }
+    }
+
+    return signals;
+  }
+
+  /**
+   * Generate SHORT trading signals (mirrored from long logic)
+   */
+  private generateShortSignals(data: StockData[], ma21: number[], ma50: number[], atr: number[]): MASignal[] {
+    const signals: MASignal[] = [];
+    let inTrade = false;
+    let currentTrailingStop: number | null = null;
+    let lowestPriceSinceEntry: number | null = null;
+    let lastExitDate: Date | null = null;
+    let reentryCount = 0;
+    let trendStartDate: Date | null = null;
+
+    const startIndex = Math.max(this.ma50Period, this.atrPeriod);
+
+    for (let i = startIndex; i < data.length; i++) {
+      const currentPrice = data[i].close;
+      const ma21Value = ma21[i];
+      const ma50Value = ma50[i];
+      const atrValue = atr[i];
+      const date = data[i].date;
+
+      // Skip if indicators are not calculated yet
+      if (isNaN(ma21Value) || isNaN(ma50Value) || isNaN(atrValue)) {
+        continue;
+      }
+
+      // Check if we're in a new downtrend
+      const isNewDowntrend = (!inTrade &&
+        currentPrice < ma50Value &&
+        i > 0 &&
+        data[i - 1].close >= ma50[i - 1]);
+
+      // Check if we can re-enter short
+      const canReenterShort = (!inTrade &&
+        lastExitDate !== null &&
+        currentPrice < ma21Value &&
+        ma21Value < ma50Value &&
+        i > 0 &&
+        data[i - 1].close >= ma21[i - 1]);
+
+      // ENTRY LOGIC
+      if (isNewDowntrend) {
+        // Primary short entry: Price closes below 50 MA
+        const confidence = Math.min(0.9, Math.abs(currentPrice - ma50Value) / ma50Value * 10);
+        currentTrailingStop = currentPrice + (atrValue * this.atrMultiplierShort);
+        lowestPriceSinceEntry = currentPrice;
+        trendStartDate = date;
+        reentryCount = 0;
+
+        signals.push({
+          date,
+          signal_type: 'SELL_SHORT',
+          price: currentPrice,
+          ma_21: ma21Value,
+          ma_50: ma50Value,
+          reasoning: `Primary short entry: Price ${currentPrice.toFixed(2)} closed below 50 ${this.maType.toUpperCase()} ${ma50Value.toFixed(2)}`,
+          confidence,
+          atr: atrValue,
+          trailing_stop: currentTrailingStop,
+          position_type: 'short'
+        });
+        inTrade = true;
+
+      } else if (canReenterShort) {
+        // Re-entry: Price closes below 21 MA after exit
+        const confidence = Math.min(0.8, Math.abs(currentPrice - ma21Value) / ma21Value * 10);
+        currentTrailingStop = currentPrice + (atrValue * this.atrMultiplierShort);
+        lowestPriceSinceEntry = currentPrice;
+        reentryCount++;
+
+        signals.push({
+          date,
+          signal_type: 'SELL_SHORT',
+          price: currentPrice,
+          ma_21: ma21Value,
+          ma_50: ma50Value,
+          reasoning: `Short re-entry #${reentryCount}: Price ${currentPrice.toFixed(2)} closed below 21 ${this.maType.toUpperCase()} ${ma21Value.toFixed(2)} (downtrend confirmed: 21 MA < 50 MA)`,
+          confidence,
+          atr: atrValue,
+          trailing_stop: currentTrailingStop,
+          position_type: 'short'
+        });
+        inTrade = true;
+      }
+
+      // EXIT LOGIC (only if in short trade)
+      if (inTrade) {
+        // Update lowest price since entry (for short, we track lows not highs)
+        if (lowestPriceSinceEntry === null || currentPrice < lowestPriceSinceEntry) {
+          lowestPriceSinceEntry = currentPrice;
+          currentTrailingStop = lowestPriceSinceEntry + (atrValue * this.atrMultiplierShort);
+        }
+
+        // Check for BUY TO COVER signals
+        let coverTriggered = false;
+        let coverReason = '';
+
+        if (currentPrice > ma21Value) {
+          // Check if this is a new signal (bounce above fast MA)
+          if (i > 0 && data[i - 1].close <= ma21[i - 1]) {
+            coverTriggered = true;
+            coverReason = `Price ${currentPrice.toFixed(2)} closed above 21 ${this.maType.toUpperCase()} ${ma21Value.toFixed(2)}`;
+          }
+        } else if (currentTrailingStop !== null && currentPrice > currentTrailingStop) {
+          coverTriggered = true;
+          coverReason = `Price ${currentPrice.toFixed(2)} hit trailing stop ${currentTrailingStop.toFixed(2)}`;
+        } else if (currentPrice > ma50Value) {
+          // Major trend reversal
+          coverTriggered = true;
+          coverReason = `Major trend reversal: Price ${currentPrice.toFixed(2)} closed above 50 ${this.maType.toUpperCase()} ${ma50Value.toFixed(2)}`;
+        }
+
+        if (coverTriggered) {
+          const confidence = Math.min(0.9, Math.abs(currentPrice - ma21Value) / ma21Value * 10);
+          signals.push({
+            date,
+            signal_type: 'BUY_TO_COVER',
+            price: currentPrice,
+            ma_21: ma21Value,
+            ma_50: ma50Value,
+            reasoning: coverReason,
+            confidence,
+            atr: atrValue,
+            trailing_stop: currentTrailingStop || undefined,
+            position_type: 'short'
+          });
+          inTrade = false;
+          lastExitDate = date;
+          currentTrailingStop = null;
+          lowestPriceSinceEntry = null;
         }
       }
     }
@@ -389,7 +548,7 @@ export class MATradingEngine {
 
     for (const signal of signals) {
       if (signal.signal_type === 'BUY' && currentPosition === null) {
-        // Find the next day's open price for entry
+        // LONG ENTRY: Find the next day's open price
         const signalDateStr = signal.date.toISOString().split('T')[0];
         const signalIndex = dateToIndex.get(signalDateStr);
         
@@ -400,17 +559,15 @@ export class MATradingEngine {
 
           // Determine if this is a re-entry
           const isReentry = signal.reasoning.includes('Re-entry');
-          if (isReentry) {
-            reentryCount++;
-            const positionCapital = availableCapital * (this.positionSizingPercentage / 100) * 0.5;
-          } else {
+          if (!isReentry) {
             reentryCount = 0;
-            const positionCapital = availableCapital * (this.positionSizingPercentage / 100);
+          } else {
+            reentryCount++;
           }
 
           const positionCapital = isReentry 
-            ? availableCapital * (this.positionSizingPercentage / 100) * 0.5
-            : availableCapital * (this.positionSizingPercentage / 100);
+            ? availableCapital * (this.positionSizingLong / 100) * 0.5
+            : availableCapital * (this.positionSizingLong / 100);
 
           const shares = Math.floor(positionCapital / nextDayOpen);
           
@@ -420,6 +577,7 @@ export class MATradingEngine {
               entry_price: nextDayOpen,
               entry_signal: signal.reasoning,
               shares,
+              position_type: 'long',
               is_reentry: isReentry,
               reentry_count: reentryCount
             };
@@ -427,7 +585,46 @@ export class MATradingEngine {
           }
         }
 
-      } else if (signal.signal_type === 'SELL' && currentPosition !== null) {
+      } else if (signal.signal_type === 'SELL_SHORT' && currentPosition === null) {
+        // SHORT ENTRY: Find the next day's open price
+        const signalDateStr = signal.date.toISOString().split('T')[0];
+        const signalIndex = dateToIndex.get(signalDateStr);
+        
+        if (signalIndex !== undefined && signalIndex + 1 < data.length) {
+          const nextDayIndex = signalIndex + 1;
+          const nextDayOpen = data[nextDayIndex].open;
+          const nextDayDate = data[nextDayIndex].date;
+
+          // Determine if this is a re-entry
+          const isReentry = signal.reasoning.includes('Re-entry');
+          if (!isReentry) {
+            reentryCount = 0;
+          } else {
+            reentryCount++;
+          }
+
+          const positionCapital = isReentry 
+            ? availableCapital * (this.positionSizingShort / 100) * 0.5
+            : availableCapital * (this.positionSizingShort / 100);
+
+          const shares = Math.floor(positionCapital / nextDayOpen);
+          
+          if (shares > 0) {
+            currentPosition = {
+              entry_date: nextDayDate,
+              entry_price: nextDayOpen,
+              entry_signal: signal.reasoning,
+              shares,
+              position_type: 'short',
+              is_reentry: isReentry,
+              reentry_count: reentryCount
+            };
+            // For shorts, we receive cash when we sell short
+            availableCapital += shares * nextDayOpen;
+          }
+        }
+
+      } else if (signal.signal_type === 'SELL' && currentPosition !== null && currentPosition.position_type === 'long') {
         // Find the next day's open price for exit
         const signalDateStr = signal.date.toISOString().split('T')[0];
         const signalIndex = dateToIndex.get(signalDateStr);
@@ -457,6 +654,7 @@ export class MATradingEngine {
             entry_signal: currentPosition.entry_signal,
             exit_signal: signal.reasoning,
             shares,
+            position_type: 'long',
             pnl,
             pnl_percent: pnlPercent,
             duration_days: duration,
@@ -469,6 +667,53 @@ export class MATradingEngine {
           availableCapital += shares * nextDayOpen;
           currentPosition = null;
         }
+
+      } else if (signal.signal_type === 'BUY_TO_COVER' && currentPosition !== null && currentPosition.position_type === 'short') {
+        // SHORT EXIT: Find the next day's open price for covering
+        const signalDateStr = signal.date.toISOString().split('T')[0];
+        const signalIndex = dateToIndex.get(signalDateStr);
+        
+        if (signalIndex !== undefined && signalIndex + 1 < data.length) {
+          const nextDayIndex = signalIndex + 1;
+          const nextDayOpen = data[nextDayIndex].open;
+          const nextDayDate = data[nextDayIndex].date;
+          const shares = currentPosition.shares;
+          
+          // SHORT P&L: (Entry - Exit) × Shares (REVERSED from long!)
+          const pnl = shares * (currentPosition.entry_price - nextDayOpen);
+          const pnlPercent = (currentPosition.entry_price - nextDayOpen) / currentPosition.entry_price * 100;
+          const duration = Math.floor((nextDayDate.getTime() - currentPosition.entry_date.getTime()) / (1000 * 60 * 60 * 24));
+
+          // Determine exit reason
+          let exitReason = 'MA Signal';
+          if (signal.reasoning.toLowerCase().includes('trailing stop')) {
+            exitReason = 'Trailing Stop';
+          } else if (signal.reasoning.includes('Major trend reversal')) {
+            exitReason = 'Trend Reversal';
+          }
+
+          const trade: MATrade = {
+            entry_date: currentPosition.entry_date,
+            exit_date: nextDayDate,
+            entry_price: currentPosition.entry_price,
+            exit_price: nextDayOpen,
+            entry_signal: currentPosition.entry_signal,
+            exit_signal: signal.reasoning,
+            shares,
+            position_type: 'short',
+            pnl,
+            pnl_percent: pnlPercent,
+            duration_days: duration,
+            exit_reason: exitReason,
+            is_reentry: currentPosition.is_reentry,
+            reentry_count: currentPosition.reentry_count
+          };
+
+          trades.push(trade);
+          // For shorts, we pay cash when we buy to cover
+          availableCapital -= shares * nextDayOpen;
+          currentPosition = null;
+        }
       }
     }
 
@@ -477,8 +722,21 @@ export class MATradingEngine {
       const finalPrice = data[data.length - 1].close;
       const finalDate = data[data.length - 1].date;
       const shares = currentPosition.shares;
-      const pnl = shares * (finalPrice - currentPosition.entry_price);
-      const pnlPercent = (finalPrice - currentPosition.entry_price) / currentPosition.entry_price * 100;
+      
+      // Calculate P&L based on position type
+      let pnl: number;
+      let pnlPercent: number;
+      
+      if (currentPosition.position_type === 'long') {
+        // Long: Profit when price rises
+        pnl = shares * (finalPrice - currentPosition.entry_price);
+        pnlPercent = (finalPrice - currentPosition.entry_price) / currentPosition.entry_price * 100;
+      } else {
+        // Short: Profit when price falls (REVERSED!)
+        pnl = shares * (currentPosition.entry_price - finalPrice);
+        pnlPercent = (currentPosition.entry_price - finalPrice) / currentPosition.entry_price * 100;
+      }
+      
       const duration = Math.floor((finalDate.getTime() - currentPosition.entry_date.getTime()) / (1000 * 60 * 60 * 24));
 
       const trade: MATrade = {
@@ -489,6 +747,7 @@ export class MATradingEngine {
         entry_signal: currentPosition.entry_signal,
         exit_signal: 'End of period - position closed',
         shares,
+        position_type: currentPosition.position_type,
         pnl,
         pnl_percent: pnlPercent,
         duration_days: duration,

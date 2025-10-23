@@ -163,6 +163,27 @@ h1 {
       cursor: pointer;
     }
   }
+  
+  // Action buttons
+  mat-cell[matColumnDef="actions"] {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    
+    button {
+      color: #66615b;
+      
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+      }
+      
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
 }
 
 // Rank Badge

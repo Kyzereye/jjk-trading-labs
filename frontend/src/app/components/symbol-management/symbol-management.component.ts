@@ -100,7 +100,6 @@ export class SymbolManagementComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading symbols:', error);
         this.showMessage('Failed to load stock symbols', 'error');
         this.loading = false;
       }
@@ -158,7 +157,6 @@ export class SymbolManagementComponent implements OnInit {
         this.loadSymbols();
       },
       error: (error) => {
-        console.error('Error creating symbol:', error);
         const message = error.error?.error || 'Failed to create symbol';
         this.showMessage(message, 'error');
         this.loading = false;
@@ -175,7 +173,6 @@ export class SymbolManagementComponent implements OnInit {
         this.loadSymbols();
       },
       error: (error) => {
-        console.error('Error updating symbol:', error);
         const message = error.error?.error || 'Failed to update symbol';
         this.showMessage(message, 'error');
         this.loading = false;
@@ -227,7 +224,6 @@ export class SymbolManagementComponent implements OnInit {
                 this.loadSymbols();
               },
               error: (error) => {
-                console.error('Error deleting symbol:', error);
                 const message = error.error?.error || error.error?.details || 'Failed to delete symbol';
                 this.showMessage(message, 'error');
                 this.loading = false;
@@ -237,7 +233,6 @@ export class SymbolManagementComponent implements OnInit {
         });
       },
       error: (error) => {
-        console.error('Error checking symbol usage:', error);
         this.showMessage('Failed to check symbol usage', 'error');
       }
     });

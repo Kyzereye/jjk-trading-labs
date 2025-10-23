@@ -1,5 +1,6 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { SymbolAutocompleteService } from '../../services/symbol-autocomplete.service';
@@ -11,6 +12,7 @@ import { of } from 'rxjs';
 
 export interface UserTrade {
   id?: number;
+  position_type?: 'long' | 'short';
   symbol: string;
   entry_date: string;
   entry_price: number;
@@ -30,15 +32,15 @@ export interface UserTrade {
   templateUrl: './trade-tracker.component.html',
   styleUrls: ['./trade-tracker.component.scss']
 })
-export class TradeTrackerComponent implements OnInit, OnDestroy {
+export class TradeTrackerComponent implements OnInit, OnDestroy, OnChanges {
   openTrades: UserTrade[] = [];
   closedTrades: UserTrade[] = [];
   loading = false;
   showForm = false;
   editingTrade: UserTrade | null = null;
   tradeForm: FormGroup;
-  displayedColumnsOpen: string[] = ['symbol', 'entry_date', 'entry_price', 'shares', 'stop_loss', 'target_price', 'current_pnl', 'actions'];
-  displayedColumnsClosed: string[] = ['symbol', 'entry_date', 'exit_date', 'entry_price', 'exit_price', 'shares', 'pnl', 'pnl_percent', 'actions'];
+  displayedColumnsOpen: string[] = ['position_type', 'symbol', 'entry_date', 'entry_price', 'shares', 'stop_loss', 'target_price', 'current_pnl', 'actions'];
+  displayedColumnsClosed: string[] = ['position_type', 'symbol', 'entry_date', 'exit_date', 'entry_price', 'exit_price', 'shares', 'pnl', 'pnl_percent', 'actions'];
   
   filteredSymbols!: Observable<string[]>;
   defaultStopLossMultiplier: number = 2.0;
@@ -47,6 +49,8 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
   currentSymbol: string = '';
   
   // Subscription management
+  @Input() symbol: string | null = null;
+  
   private subscriptions: Subscription = new Subscription();
   private symbolSubscription: Subscription | null = null;
   private entryPriceSubscription: Subscription | null = null;
@@ -58,9 +62,11 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
-    private symbolAutocompleteService: SymbolAutocompleteService
+    private symbolAutocompleteService: SymbolAutocompleteService,
+    private route: ActivatedRoute
   ) {
     this.tradeForm = this.fb.group({
+      position_type: ['long', Validators.required],
       symbol: ['', Validators.required],
       entry_date: ['', Validators.required],
       entry_price: ['', [Validators.required, Validators.min(0.01)]],
@@ -77,6 +83,75 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
     this.loadTrades();
     this.loadUserPreferences();
     this.setupSymbolAutocomplete();
+    this.setupStopLossValidation();
+    
+    // Check for symbol input first
+    if (this.symbol) {
+      this.showAddForm();
+      // Set the symbol after showing the form
+      setTimeout(() => {
+        this.tradeForm.patchValue({ symbol: this.symbol!.toUpperCase() });
+      }, 0);
+    }
+    
+    // Check for query parameter (fallback)
+    this.route.queryParams.subscribe(params => {
+      if (params['symbol'] && !this.symbol) {
+        this.showAddForm();
+        // Set the symbol after showing the form
+        setTimeout(() => {
+          this.tradeForm.patchValue({ symbol: params['symbol'].toUpperCase() });
+        }, 0);
+      }
+    });
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['symbol'] && changes['symbol'].currentValue) {
+      const symbol = changes['symbol'].currentValue.toUpperCase();
+      this.showAddForm();
+      // Set the symbol after showing the form
+      setTimeout(() => {
+        this.tradeForm.patchValue({ symbol: symbol });
+      }, 0);
+    }
+  }
+  
+  setupStopLossValidation(): void {
+    // Re-validate stop loss when position type or entry price changes
+    this.tradeForm.get('position_type')?.valueChanges.subscribe(() => {
+      this.tradeForm.get('stop_loss')?.updateValueAndValidity();
+    });
+    
+    this.tradeForm.get('entry_price')?.valueChanges.subscribe(() => {
+      this.tradeForm.get('stop_loss')?.updateValueAndValidity();
+    });
+  }
+  
+  isStopLossValid(): boolean {
+    const positionType = this.tradeForm.get('position_type')?.value;
+    const entryPrice = parseFloat(this.tradeForm.get('entry_price')?.value);
+    const stopLoss = parseFloat(this.tradeForm.get('stop_loss')?.value);
+    
+    if (!stopLoss || !entryPrice) {
+      return true; // Don't show error if fields are empty
+    }
+    
+    if (positionType === 'long') {
+      // Long: stop loss must be BELOW entry
+      return stopLoss < entryPrice;
+    } else {
+      // Short: stop loss must be ABOVE entry
+      return stopLoss > entryPrice;
+    }
+  }
+  
+  getStopLossHint(): string {
+    const positionType = this.tradeForm.get('position_type')?.value;
+    if (positionType === 'short') {
+      return 'Short positions: Stop loss must be ABOVE entry price';
+    }
+    return 'Long positions: Stop loss should be BELOW entry price';
   }
 
   ngOnDestroy(): void {
@@ -101,7 +176,7 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
           this.defaultATRPeriod = user.preferences.default_atr_period || 14;
         }
       } catch (error) {
-        console.error('Error parsing user preferences:', error);
+        // Use default preferences if parsing fails
       }
     }
   }
@@ -143,7 +218,6 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
           this.fetchingATR = false;
         }),
         catchError((error) => {
-          console.error('Error fetching ATR data:', error);
           this.currentATR = 0;
           return of({ success: false, data: [] });
         })
@@ -219,7 +293,7 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('Error loading open trades:', error);
+        this.snackBar.open('Failed to load open trades', 'Close', { duration: 3000 });
       }
     });
 
@@ -231,7 +305,7 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading closed trades:', error);
+        this.snackBar.open('Failed to load closed trades', 'Close', { duration: 3000 });
         this.loading = false;
       }
     });
@@ -240,7 +314,17 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
   showAddForm(): void {
     this.showForm = true;
     this.editingTrade = null;
+    
+    // Store the symbol before resetting
+    const currentSymbol = this.tradeForm.get('symbol')?.value;
+    
     this.tradeForm.reset();
+    
+    // Restore the symbol if it was set
+    if (currentSymbol) {
+      this.tradeForm.patchValue({ symbol: currentSymbol });
+    }
+    
     this.currentATR = 0;
     this.currentSymbol = '';
     this.fetchingATR = false;
@@ -302,6 +386,7 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
     }
     
     this.tradeForm.patchValue({
+      position_type: trade.position_type || 'long',
       symbol: trade.symbol,
       entry_date: trade.entry_date,
       entry_price: trade.entry_price,
@@ -355,7 +440,6 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
           this.loadTrades();
         },
         error: (error) => {
-          console.error('Error deleting trade:', error);
           this.snackBar.open('Failed to delete trade', 'Close', { duration: 3000 });
         }
       });
@@ -407,7 +491,6 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
             this.loadTrades();
           },
           error: (error) => {
-            console.error('Error updating trade:', error);
             this.snackBar.open('Failed to update trade', 'Close', { duration: 3000 });
           }
         });
@@ -431,7 +514,6 @@ export class TradeTrackerComponent implements OnInit, OnDestroy {
             this.loadTrades();
           },
           error: (error) => {
-            console.error('Error creating trade:', error);
             this.snackBar.open('Failed to add trade', 'Close', { duration: 3000 });
           }
         });

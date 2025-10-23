@@ -38,19 +38,25 @@ export interface OptimizationSummary {
 export class MAOptimizer {
   private initialCapital: number;
   private atrPeriod: number;
-  private atrMultiplier: number;
+  private atrMultiplierLong: number;
+  private atrMultiplierShort: number;
   private maType: string;
+  private strategyMode: 'long' | 'short' | 'both';
 
   constructor(
     initialCapital: number = 100000,
     atrPeriod: number = 14,
-    atrMultiplier: number = 2.0,
-    maType: string = 'ema'
+    atrMultiplierLong: number = 2.0,
+    atrMultiplierShort: number = 1.5,
+    maType: string = 'ema',
+    strategyMode: 'long' | 'short' | 'both' = 'long'
   ) {
     this.initialCapital = initialCapital;
     this.atrPeriod = atrPeriod;
-    this.atrMultiplier = atrMultiplier;
+    this.atrMultiplierLong = atrMultiplierLong;
+    this.atrMultiplierShort = atrMultiplierShort;
     this.maType = maType;
+    this.strategyMode = strategyMode;
   }
 
   /**
@@ -63,8 +69,6 @@ export class MAOptimizer {
     slowMaRange: [number, number] = [20, 100],
     minDistance: number = 10
   ): Promise<OptimizationSummary> {
-    console.log(`Starting MA optimization for ${symbol}`);
-
     // Get stock data
     const stockData = await getStockData(symbol, days);
     if (!stockData || stockData.length < 100) {
@@ -83,7 +87,6 @@ export class MAOptimizer {
 
     // Generate all valid MA pairs
     const maPairs = this.generateMaPairs(fastMaRange, slowMaRange, minDistance);
-    console.log(`Testing ${maPairs.length} MA pairs for ${symbol}`);
 
     // Test each pair
     const results: MAOptimizationResult[] = [];
@@ -94,7 +97,7 @@ export class MAOptimizer {
           results.push(result);
         }
       } catch (error) {
-        console.warn(`Failed to test pair (${fastMa}, ${slowMa}):`, error);
+        // Skip failed pair and continue
         continue;
       }
     }
@@ -115,12 +118,13 @@ export class MAOptimizer {
         min_distance: minDistance,
         days,
         atr_period: this.atrPeriod,
-        atr_multiplier: this.atrMultiplier,
-        ma_type: this.maType
+        atr_multiplier_long: this.atrMultiplierLong,
+        atr_multiplier_short: this.atrMultiplierShort,
+        ma_type: this.maType,
+        strategy_mode: this.strategyMode
       }
     };
 
-    console.log(`Optimization complete for ${symbol}. Best pair: ${summary.best_pair?.fast_ma},${summary.best_pair?.slow_ma}`);
     return summary;
   }
 
@@ -132,8 +136,6 @@ export class MAOptimizer {
     maPairs: Array<[number, number]>,
     days: number = 365
   ): Promise<MAOptimizationResult[]> {
-    console.log(`Comparing ${maPairs.length} MA pairs for ${symbol}`);
-
     const stockData = await getStockData(symbol, days);
     if (!stockData) {
       throw new Error(`No data available for ${symbol}`);
@@ -157,7 +159,7 @@ export class MAOptimizer {
           results.push(result);
         }
       } catch (error) {
-        console.warn(`Failed to test pair (${fastMa}, ${slowMa}):`, error);
+        // Skip failed pair and continue
         continue;
       }
     }
@@ -200,10 +202,15 @@ export class MAOptimizer {
       const engine = new MATradingEngine(
         this.initialCapital,
         this.atrPeriod,
-        this.atrMultiplier,
+        this.atrMultiplierLong,
+        this.atrMultiplierShort,
         this.maType,
         fastMa,
-        slowMa
+        slowMa,
+        10.0, // mean_reversion_threshold
+        5.0, // position_sizing_long (default for optimization)
+        3.0, // position_sizing_short (default for optimization)
+        this.strategyMode
       );
 
       // Run analysis
@@ -234,7 +241,6 @@ export class MAOptimizer {
         date_range: `${data[0].date.toISOString().split('T')[0]} to ${data[data.length - 1].date.toISOString().split('T')[0]}`
       };
     } catch (error) {
-      console.warn(`Error testing pair (${fastMa}, ${slowMa}):`, error);
       return null;
     }
   }
@@ -320,6 +326,7 @@ router.get('/optimize/:symbol', authMiddleware, asyncHandler(async (req: Request
   const atrPeriod = parseInt(req.query.atr_period as string) || 14;
   const atrMultiplier = parseFloat(req.query.atr_multiplier as string) || 2.0;
   const maType = (req.query.ma_type as string) || 'ema';
+  const strategyMode = (req.query.strategy_mode as string) || 'long';
 
   // Parse ranges
   const fastRange: [number, number] = fastRangeStr.split(',').map(Number) as [number, number];
@@ -335,11 +342,19 @@ router.get('/optimize/:symbol', authMiddleware, asyncHandler(async (req: Request
   if (maType !== 'ema' && maType !== 'sma') {
     throw createError('ma_type must be "ema" or "sma"', 400);
   }
-
-  console.log(`Optimizing MA pairs for ${symbol}`);
+  if (strategyMode !== 'long' && strategyMode !== 'short' && strategyMode !== 'both') {
+    throw createError('strategy_mode must be "long", "short", or "both"', 400);
+  }
 
   // Create optimizer
-  const optimizer = new MAOptimizer(initialCapital, atrPeriod, atrMultiplier, maType);
+  const optimizer = new MAOptimizer(
+    initialCapital,
+    atrPeriod,
+    atrMultiplier, // atr_multiplier_long
+    atrMultiplier * 0.75, // atr_multiplier_short (tighter)
+    maType,
+    strategyMode as 'long' | 'short' | 'both'
+  );
 
   // Run optimization
   const results = await optimizer.optimizeMaPairs(symbol, days, fastRange, slowRange, minDistance);
@@ -408,6 +423,7 @@ router.get('/compare-pairs/:symbol', authMiddleware, asyncHandler(async (req: Re
   const atrPeriod = parseInt(req.query.atr_period as string) || 14;
   const atrMultiplier = parseFloat(req.query.atr_multiplier as string) || 2.0;
   const maType = (req.query.ma_type as string) || 'ema';
+  const strategyMode = (req.query.strategy_mode as string) || 'long';
 
   // Parse MA pairs
   const maPairs: Array<[number, number]> = [];
@@ -427,10 +443,15 @@ router.get('/compare-pairs/:symbol', authMiddleware, asyncHandler(async (req: Re
     throw createError('No valid MA pairs provided', 400);
   }
 
-  console.log(`Comparing ${maPairs.length} MA pairs for ${symbol}`);
-
   // Create optimizer
-  const optimizer = new MAOptimizer(initialCapital, atrPeriod, atrMultiplier, maType);
+  const optimizer = new MAOptimizer(
+    initialCapital,
+    atrPeriod,
+    atrMultiplier, // atr_multiplier_long
+    atrMultiplier * 0.75, // atr_multiplier_short
+    maType,
+    strategyMode as 'long' | 'short' | 'both'
+  );
 
   // Run comparison
   const results = await optimizer.compareMaPairs(symbol, maPairs, days);
@@ -483,10 +504,17 @@ router.get('/heatmap/:symbol', authMiddleware, asyncHandler(async (req: Request,
     throw createError(`Invalid metric. Must be one of: ${validMetrics.join(', ')}`, 400);
   }
 
-  console.log(`Generating heatmap data for ${symbol} using ${metric} metric`);
-
+  const strategyMode = (req.query.strategy_mode as string) || 'long';
+  
   // Create optimizer
-  const optimizer = new MAOptimizer();
+  const optimizer = new MAOptimizer(
+    100000, // initial_capital
+    14, // atr_period
+    2.0, // atr_multiplier_long
+    1.5, // atr_multiplier_short
+    'ema',
+    strategyMode as 'long' | 'short' | 'both'
+  );
 
   // Run optimization
   const results = await optimizer.optimizeMaPairs(symbol, days, fastRange, slowRange, minDistance);

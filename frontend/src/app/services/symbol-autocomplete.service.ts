@@ -26,7 +26,7 @@ export class SymbolAutocompleteService {
         }
       },
       error: (error) => {
-        console.error('Error loading symbols for autocomplete:', error);
+        // Symbols loading failed - continue without autocomplete
       }
     });
   }

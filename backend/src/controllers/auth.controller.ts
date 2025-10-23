@@ -208,10 +208,10 @@ router.post('/verify-email', asyncHandler(async (req: Request, res: Response) =>
 
   // Create default user preferences
   await dbService.execute(
-    `INSERT INTO user_preferences (user_id, name, default_days, default_atr_period, default_atr_multiplier, 
-     default_ma_type, default_initial_capital, position_sizing_percentage, mean_reversion_threshold, 
-     trades_columns) 
-     VALUES (?, ?, 365, 14, 2.0, 'ema', 100000, 5.0, 10.0, 
+    `INSERT INTO user_preferences (user_id, name, default_days, default_atr_period, default_fast_ma, default_slow_ma,
+     atr_multiplier_long, atr_multiplier_short, default_ma_type, default_initial_capital, position_sizing_long, 
+     position_sizing_short, mean_reversion_threshold, trades_columns) 
+     VALUES (?, ?, 365, 14, 21, 50, 2.0, 1.5, 'ema', 100000, 5.0, 3.0, 10.0, 
      '{"entry_date":true,"exit_date":true,"entry_price":true,"exit_price":true,"exit_reason":true,"shares":true,"pnl":true,"pnl_percent":true,"running_pnl":true,"running_capital":true,"drawdown":true,"duration":true}')`,
     [user.id, user.email]
   );
@@ -319,19 +319,27 @@ router.put('/preferences', authMiddleware, asyncHandler(async (req: AuthRequest,
     `UPDATE user_preferences SET 
      default_days = ?, 
      default_atr_period = ?, 
-     default_atr_multiplier = ?, 
+     default_fast_ma = ?,
+     default_slow_ma = ?,
+     atr_multiplier_long = ?, 
+     atr_multiplier_short = ?, 
      default_ma_type = ?, 
      default_initial_capital = ?, 
-     position_sizing_percentage = ?, 
+     position_sizing_long = ?, 
+     position_sizing_short = ?, 
      mean_reversion_threshold = ? 
      WHERE user_id = ?`,
     [
       preferences.default_days,
       preferences.default_atr_period,
-      preferences.default_atr_multiplier,
+      preferences.default_fast_ma || 21,
+      preferences.default_slow_ma || 50,
+      preferences.atr_multiplier_long || preferences.default_atr_multiplier || 2.0,
+      preferences.atr_multiplier_short || 1.5,
       preferences.default_ma_type,
       preferences.default_initial_capital,
-      preferences.position_sizing_percentage,
+      preferences.position_sizing_long || preferences.position_sizing_percentage || 5.0,
+      preferences.position_sizing_short || 3.0,
       preferences.mean_reversion_threshold,
       userId
     ]
@@ -508,7 +516,7 @@ router.get('/favorites-status', authMiddleware, asyncHandler(async (req: AuthReq
   const userId = req.user!.id;
 
   const [prefs] = await dbService.execute(
-    'SELECT favorite_stocks, default_atr_period, default_atr_multiplier, default_ma_type FROM user_preferences WHERE user_id = ?',
+    'SELECT favorite_stocks, default_atr_period, atr_multiplier_long, default_ma_type FROM user_preferences WHERE user_id = ?',
     [userId]
   );
 

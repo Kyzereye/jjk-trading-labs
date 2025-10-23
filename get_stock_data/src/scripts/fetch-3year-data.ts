@@ -16,9 +16,11 @@ const TIME_PERIODS = [
     params: {
       initial_capital: 100000,
       atr_period: 14,
-      atr_multiplier: 2.0,
+      atr_multiplier_long: 2.0,
+      atr_multiplier_short: 1.5,
       ma_type: 'ema' as const,
-      position_sizing_percentage: 5.0,
+      position_sizing_long: 5.0,
+      position_sizing_short: 3.0,
       days: 0,
       mean_reversion_threshold: 10.0
     }
@@ -29,14 +31,19 @@ const TIME_PERIODS = [
     params: {
       initial_capital: 100000,
       atr_period: 14,
-      atr_multiplier: 2.0,
+      atr_multiplier_long: 2.0,
+      atr_multiplier_short: 1.5,
       ma_type: 'ema' as const,
-      position_sizing_percentage: 5.0,
+      position_sizing_long: 5.0,
+      position_sizing_short: 3.0,
       days: 365,
       mean_reversion_threshold: 10.0
     }
   }
 ];
+
+// Strategy modes to analyze
+const STRATEGY_MODES = ['long', 'short', 'both'] as const;
 
 async function fetchStockData(symbol: string, period: string = '3y'): Promise<StockData[]> {
   try {
@@ -76,7 +83,10 @@ async function main() {
   console.log('📊 This will:');
   console.log('   1. Fetch 3 years of stock data from Yahoo Finance');
   console.log('   2. Store data in MySQL database');
-  console.log('   3. Run MA trading analysis on each symbol (ALL data + 1 Year)');
+  console.log('   3. Run MA trading analysis on each symbol:');
+  console.log('      • Time periods: ALL data + 1 Year');
+  console.log('      • Strategy modes: LONG, SHORT, BOTH');
+  console.log('      • Total: 6 analyses per symbol');
   console.log('   4. Store performance metrics for Top Performers\n');
   
   const db = new DatabaseService();
@@ -100,6 +110,7 @@ async function main() {
     let analysisSuccessCount = 0;
     let analysisErrorCount = 0;
     const failedSymbols: Array<{symbol: string, reason: string}> = [];
+    const analysisFailedSymbols: Array<{symbol: string, successful: number, total: number, errors: string[]}> = [];
 
     for (let i = 0; i < symbols.length; i++) {
       const symbol = symbols[i];
@@ -120,31 +131,57 @@ async function main() {
           
           successCount++;
           
-          // Run performance analysis for each time period
-          console.log(`  🔬 Running MA trading analysis for ALL periods...`);
+          // Run performance analysis for each time period and strategy mode
+          console.log(`  🔬 Running MA trading analysis for ALL periods & strategies...`);
           let periodSuccessCount = 0;
+          const totalAnalyses = TIME_PERIODS.length * STRATEGY_MODES.length;
+          const analysisErrors: string[] = [];
           
           for (const period of TIME_PERIODS) {
-            console.log(`     ⏱  Analyzing ${period.label}...`);
-            const analysisSuccess = await analyzer.analyzeAndStorePerformance(
-              symbol,
-              stockData,
-              period.params,
-              period.label
-            );
-            
-            if (analysisSuccess) {
-              periodSuccessCount++;
+            for (const strategyMode of STRATEGY_MODES) {
+              console.log(`     ⏱  Analyzing ${period.label} - ${strategyMode.toUpperCase()}...`);
+              
+              const analysisParams = {
+                ...period.params,
+                strategy_mode: strategyMode
+              };
+              
+              const result = await analyzer.analyzeAndStorePerformance(
+                symbol,
+                stockData,
+                analysisParams,
+                period.label
+              );
+              
+              if (result.success) {
+                periodSuccessCount++;
+              } else if (result.error) {
+                analysisErrors.push(`${period.label}-${strategyMode.toUpperCase()}: ${result.error}`);
+              }
             }
           }
           
-          if (periodSuccessCount === TIME_PERIODS.length) {
+          if (periodSuccessCount === totalAnalyses) {
             analysisSuccessCount++;
           } else if (periodSuccessCount === 0) {
             analysisErrorCount++;
+            analysisFailedSymbols.push({ 
+              symbol, 
+              successful: 0, 
+              total: totalAnalyses,
+              errors: analysisErrors
+            });
+            console.log(`  ⚠️  Analysis failed for all ${totalAnalyses} configurations`);
           } else {
             // Partial success
             analysisSuccessCount++;
+            analysisFailedSymbols.push({ 
+              symbol, 
+              successful: periodSuccessCount, 
+              total: totalAnalyses,
+              errors: analysisErrors
+            });
+            console.log(`  ⚠️  Analysis partially successful: ${periodSuccessCount}/${totalAnalyses} configurations passed`);
           }
           
         } else {
@@ -172,9 +209,28 @@ async function main() {
     console.log(`❌ Performance analysis failed: ${analysisErrorCount} symbols`);
     
     if (failedSymbols.length > 0) {
-      console.log(`\n⚠️  Failed Symbols:`);
+      console.log(`\n⚠️  Data Fetch Failed Symbols:`);
       failedSymbols.forEach(({ symbol, reason }) => {
         console.log(`   • ${symbol}: ${reason}`);
+      });
+    }
+    
+    if (analysisFailedSymbols.length > 0) {
+      console.log(`\n⚠️  Analysis Failed/Partial Symbols:`);
+      analysisFailedSymbols.forEach(({ symbol, successful, total, errors }) => {
+        if (successful === 0) {
+          console.log(`   • ${symbol}: 0/${total} analyses succeeded (TOTAL FAILURE)`);
+        } else {
+          console.log(`   • ${symbol}: ${successful}/${total} analyses succeeded (PARTIAL)`);
+        }
+        
+        // Show unique error messages
+        if (errors.length > 0) {
+          const uniqueErrors = [...new Set(errors.map(e => e.split(': ')[1]))];
+          uniqueErrors.forEach(error => {
+            console.log(`     └─ ${error}`);
+          });
+        }
       });
     }
     

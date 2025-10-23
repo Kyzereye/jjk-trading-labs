@@ -32,6 +32,7 @@ export class TopPerformersComponent implements OnInit, AfterViewInit {
   loading = false;
   minTrades = 5;
   timePeriod = 'ALL';
+  strategyMode = 'long';
   totalAnalyzed = 0;
   latestAnalysisDate: string | null = null;
   pageSize = 20;
@@ -39,6 +40,12 @@ export class TopPerformersComponent implements OnInit, AfterViewInit {
   timePeriods = [
     { value: 'ALL', label: 'All Data (3 Years)' },
     { value: '1Y', label: '1 Year' }
+  ];
+  
+  strategyModes = [
+    { value: 'long', label: 'Long Only' },
+    { value: 'short', label: 'Short Only' },
+    { value: 'both', label: 'Long + Short' }
   ];
   
   displayedColumns: string[] = ['rank', 'symbol', 'company_name', 'total_return_pct', 'win_rate', 'sharpe_ratio', 'total_trades', 'actions'];
@@ -76,7 +83,8 @@ export class TopPerformersComponent implements OnInit, AfterViewInit {
       limit: 1000, // Get all
       sort_by: 'total_return_pct',
       min_trades: this.minTrades,
-      time_period: this.timePeriod
+      time_period: this.timePeriod,
+      strategy_mode: this.strategyMode
     }).subscribe({
       next: (response) => {
         if (response.success) {
@@ -111,7 +119,6 @@ export class TopPerformersComponent implements OnInit, AfterViewInit {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading top performers:', error);
         this.snackBar.open('Failed to load top performers. Run data fetch script first.', 'Close', { duration: 5000 });
         this.loading = false;
       }
@@ -126,13 +133,17 @@ export class TopPerformersComponent implements OnInit, AfterViewInit {
         }
       },
       error: (error) => {
-        console.error('Error loading stats:', error);
+        // Stats loading failed - continue without stats
       }
     });
   }
 
   analyzeStock(symbol: string): void {
     this.router.navigate(['/trading'], { queryParams: { symbol } });
+  }
+
+  addTrade(symbol: string): void {
+    this.router.navigate(['/dashboard'], { queryParams: { symbol } });
   }
 
   formatCurrency(value: number): string {

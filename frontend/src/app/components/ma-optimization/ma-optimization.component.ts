@@ -46,6 +46,12 @@ export class MaOptimizationComponent implements OnInit {
     { value: 'sma', label: 'SMA (Simple Moving Average)' }
   ];
   
+  strategyModes = [
+    { value: 'long', label: 'Long Only' },
+    { value: 'short', label: 'Short Only' },
+    { value: 'both', label: 'Long + Short' }
+  ];
+  
   displayedColumns: string[] = ['rank', 'fast_ma', 'slow_ma', 'ma_distance', 'total_return', 'sharpe_ratio', 'win_rate', 'total_trades'];
   
   constructor(
@@ -67,6 +73,7 @@ export class MaOptimizationComponent implements OnInit {
       slowRangeMax: [100, [Validators.required, Validators.min(20)]],
       minDistance: [10, [Validators.required, Validators.min(5)]],
       maType: ['ema', Validators.required],
+      strategyMode: ['long', Validators.required],
       initialCapital: [100000, [Validators.required, Validators.min(1000)]],
       atrPeriod: [14, [Validators.required, Validators.min(7)]],
       atrMultiplier: [2.0, [Validators.required, Validators.min(1.0)]]
@@ -91,7 +98,6 @@ export class MaOptimizationComponent implements OnInit {
         this.loadingFavorites = false;
       },
       error: (error) => {
-        console.error('Error loading favorites:', error);
         this.loadingFavorites = false;
       }
     });
@@ -153,7 +159,8 @@ export class MaOptimizationComponent implements OnInit {
           initial_capital: formValue.initialCapital,
           atr_period: formValue.atrPeriod,
           atr_multiplier: formValue.atrMultiplier,
-          ma_type: formValue.maType
+          ma_type: formValue.maType,
+          strategy_mode: formValue.strategyMode
         };
         
         const response = await this.apiService.optimizeMA(symbol, request).toPromise();
@@ -174,7 +181,6 @@ export class MaOptimizationComponent implements OnInit {
         }
         
       } catch (error: any) {
-        console.error(`Error optimizing ${symbol}:`, error);
         this.results[i].status = 'error';
         this.results[i].error = error.error?.message || 'Optimization failed';
         this.snackBar.open(`✗ ${symbol} optimization failed`, 'Close', { duration: 3000 });

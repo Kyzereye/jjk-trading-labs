@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, OnInit, ViewChild, ChangeDetectorRef, AfterViewInit, NgZone } from '@angular/core';
+import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { TradeTrackerComponent } from '../trade-tracker/trade-tracker.component';
 
 interface FavoriteStock {
   symbol: string;
@@ -39,7 +40,7 @@ interface DashboardStats {
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, AfterViewInit {
   user: any = null;
   loading = true;
   favoriteStocks: FavoriteStock[] = [];
@@ -53,17 +54,56 @@ export class DashboardComponent implements OnInit {
 
   // Default favorite stocks for now
   defaultFavorites = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA'];
+  
+  // Symbol from query parameter for trade tracker
+  tradeSymbol: string | null = null;
+  
+  // Reference to trade tracker component
+  @ViewChild(TradeTrackerComponent) tradeTrackerComponent!: TradeTrackerComponent;
+  
+  // Panel expansion state
+  tradeTrackerPanelExpanded = false;
+  shouldExpandOnInit = false;
+  private _initialized = false;
 
   constructor(
     private authService: AuthService,
     private apiService: ApiService,
     private router: Router,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {}
 
   ngOnInit(): void {
     this.user = this.authService.getCurrentUser();
     this.loadDashboardData();
+    
+    // Check for symbol query parameter
+    this.route.queryParams.subscribe(params => {
+      if (params['symbol']) {
+        this.tradeSymbol = params['symbol'].toUpperCase();
+        // Set flag to expand panel after view init
+        this.shouldExpandOnInit = true;
+      }
+    });
+  }
+
+  ngAfterViewInit(): void {
+    // Mark as initialized
+    this._initialized = true;
+    
+    // Handle panel expansion after view is initialized
+    if (this.shouldExpandOnInit) {
+      this.ngZone.runOutsideAngular(() => {
+        setTimeout(() => {
+          this.ngZone.run(() => {
+            this.tradeTrackerPanelExpanded = true;
+          });
+        }, 100);
+      });
+    }
   }
 
   loadDashboardData(): void {
@@ -93,7 +133,6 @@ export class DashboardComponent implements OnInit {
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading favorites status:', error);
         this.favoriteStocks = [];
         this.loading = false;
       }
@@ -138,7 +177,6 @@ export class DashboardComponent implements OnInit {
       });
       this.loading = false;
     }).catch(error => {
-      console.error('Error loading default favorites data:', error);
       this.favoriteStocks = this.defaultFavorites.map(symbol => ({
         symbol,
         status: 'Add to favorites for live tracking',
@@ -188,5 +226,59 @@ export class DashboardComponent implements OnInit {
     if (value < 0) return 'negative';
     return 'neutral';
   }
+
+  showAddTradeForm(): void {
+    if (this.tradeTrackerComponent) {
+      this.tradeTrackerComponent.showAddForm();
+      // Expand panel after a short delay to avoid change detection issues
+      this.ngZone.runOutsideAngular(() => {
+        setTimeout(() => {
+          this.ngZone.run(() => {
+            this.tradeTrackerPanelExpanded = true;
+          });
+        }, 50);
+      });
+    }
+  }
+
+  isTradeFormVisible(): boolean {
+    return this.tradeTrackerComponent ? this.tradeTrackerComponent.showForm : false;
+  }
+
+  hasTrades(): boolean {
+    if (!this.tradeTrackerComponent) return false;
+    return (this.tradeTrackerComponent.openTrades.length + this.tradeTrackerComponent.closedTrades.length) > 0;
+  }
+
+  shouldExpandTradeTracker(): boolean {
+    // Don't check anything until after initialization to avoid change detection issues
+    if (!this._initialized) {
+      return false;
+    }
+    
+    // Always return true if we explicitly want to expand
+    if (this.tradeTrackerPanelExpanded) {
+      return true;
+    }
+    
+    // Check if component is ready before accessing its properties
+    if (!this.tradeTrackerComponent) {
+      return false;
+    }
+    
+    // Check for trades
+    const hasTrades = (this.tradeTrackerComponent.openTrades.length + this.tradeTrackerComponent.closedTrades.length) > 0;
+    
+    // Check if form is visible
+    const isFormVisible = this.tradeTrackerComponent.showForm;
+    
+    return hasTrades || isFormVisible;
+  }
+
+  getTradeCount(): number {
+    if (!this.tradeTrackerComponent) return 0;
+    return this.tradeTrackerComponent.openTrades.length + this.tradeTrackerComponent.closedTrades.length;
+  }
 }
+
 

@@ -225,9 +225,7 @@ app.use('*', (req, res) => {
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 JJK Trading Labs Backend running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
+  // Server started successfully
 });
 
 export default app;

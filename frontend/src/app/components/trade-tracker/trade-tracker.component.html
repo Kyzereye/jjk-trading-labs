@@ -1,12 +1,4 @@
 <div class="trade-tracker-container">
-  <div class="header-section">
-    <h2>Trade Tracker</h2>
-    <p class="subtitle">Track your trades and monitor performance</p>
-    <button mat-raised-button color="primary" (click)="showAddForm()" *ngIf="!showForm">
-      <mat-icon>add</mat-icon>
-      Add New Trade
-    </button>
-  </div>
 
   <!-- Add/Edit Trade Form -->
   <mat-card *ngIf="showForm" class="trade-form-card">
@@ -15,6 +7,21 @@
     </mat-card-header>
     <mat-card-content>
       <form [formGroup]="tradeForm" class="trade-form">
+        <!-- Position Type Toggle -->
+        <div class="position-type-section">
+          <label class="section-label">Position Type</label>
+          <mat-button-toggle-group formControlName="position_type" class="position-toggle">
+            <mat-button-toggle value="long">
+              <mat-icon>trending_up</mat-icon>
+              Long
+            </mat-button-toggle>
+            <mat-button-toggle value="short">
+              <mat-icon>trending_down</mat-icon>
+              Short
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+
         <div class="form-row">
           <mat-form-field appearance="outline">
             <mat-label>Stock Symbol</mat-label>
@@ -57,7 +64,10 @@
             <mat-label>Stop Loss</mat-label>
             <span matTextPrefix>$</span>
             <input matInput type="number" formControlName="stop_loss" step="0.01" placeholder="Auto-calculated">
-            <mat-hint>Stop loss PRICE (not distance) - based on ATR {{ defaultStopLossMultiplier }}x</mat-hint>
+            <mat-hint>{{ getStopLossHint() }}</mat-hint>
+            <mat-error *ngIf="!isStopLossValid()">
+              {{ tradeForm.get('position_type')?.value === 'long' ? 'Stop must be below entry price' : 'Stop must be above entry price' }}
+            </mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
@@ -113,6 +123,17 @@
     </mat-card-header>
     <mat-card-content>
       <mat-table [dataSource]="openTrades" class="trades-table">
+        <!-- Position Type Column -->
+        <ng-container matColumnDef="position_type">
+          <mat-header-cell *matHeaderCellDef>Type</mat-header-cell>
+          <mat-cell *matCellDef="let trade">
+            <span class="position-badge" [class.long]="trade.position_type === 'long'" [class.short]="trade.position_type === 'short'">
+              <mat-icon>{{ trade.position_type === 'long' ? 'trending_up' : 'trending_down' }}</mat-icon>
+              {{ trade.position_type === 'long' ? 'LONG' : 'SHORT' }}
+            </span>
+          </mat-cell>
+        </ng-container>
+        
         <ng-container matColumnDef="symbol">
           <mat-header-cell *matHeaderCellDef>Symbol</mat-header-cell>
           <mat-cell *matCellDef="let trade"><strong>{{ trade.symbol }}</strong></mat-cell>
@@ -178,6 +199,17 @@
     </mat-card-header>
     <mat-card-content>
       <mat-table [dataSource]="closedTrades" class="trades-table">
+        <!-- Position Type Column -->
+        <ng-container matColumnDef="position_type">
+          <mat-header-cell *matHeaderCellDef>Type</mat-header-cell>
+          <mat-cell *matCellDef="let trade">
+            <span class="position-badge" [class.long]="trade.position_type === 'long'" [class.short]="trade.position_type === 'short'">
+              <mat-icon>{{ trade.position_type === 'long' ? 'trending_up' : 'trending_down' }}</mat-icon>
+              {{ trade.position_type === 'long' ? 'LONG' : 'SHORT' }}
+            </span>
+          </mat-cell>
+        </ng-container>
+        
         <ng-container matColumnDef="symbol">
           <mat-header-cell *matHeaderCellDef>Symbol</mat-header-cell>
           <mat-cell *matCellDef="let trade"><strong>{{ trade.symbol }}</strong></mat-cell>

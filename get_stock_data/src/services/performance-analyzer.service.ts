@@ -10,13 +10,19 @@ import { MATradingEngine, MAResults } from '../../../backend/src/services/tradin
 export interface AnalysisParams {
   initial_capital: number;
   atr_period: number;
-  atr_multiplier: number;
+  atr_multiplier_long?: number;
+  atr_multiplier_short?: number;
   ma_type: 'ema' | 'sma';
-  position_sizing_percentage: number;
+  position_sizing_long?: number;
+  position_sizing_short?: number;
   days: number;
   mean_reversion_threshold?: number;
   custom_fast_ma?: number;
   custom_slow_ma?: number;
+  strategy_mode?: 'long' | 'short' | 'both';
+  // Legacy support
+  atr_multiplier?: number;
+  position_sizing_percentage?: number;
 }
 
 export interface PerformanceMetrics {
@@ -43,52 +49,79 @@ export class PerformanceAnalyzer {
     analysisParams: AnalysisParams,
     timePeriod: string = 'ALL',
     analysisDate?: Date
-  ): Promise<boolean> {
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       if (!analysisDate) {
         analysisDate = new Date();
       }
 
       if (!stockData || stockData.length < 30) {
-        console.log(`  ⚠️  Insufficient data for ${symbol}: ${stockData?.length || 0} days`);
-        return false;
+        const errorMsg = `Insufficient data: ${stockData?.length || 0} days (need at least 30)`;
+        console.log(`  ⚠️  ${errorMsg}`);
+        return { success: false, error: errorMsg };
+      }
+      
+      // Additional check for sliced data
+      let dataToAnalyze = stockData;
+      if (analysisParams.days && analysisParams.days > 0) {
+        dataToAnalyze = stockData.slice(-analysisParams.days);
+        if (dataToAnalyze.length < 60) {
+          const errorMsg = `Insufficient data after slicing: ${dataToAnalyze.length} days (need at least 60 for MA calculations)`;
+          console.log(`  ⚠️  ${errorMsg}`);
+          return { success: false, error: errorMsg };
+        }
+        console.log(`  ⏱  Using last ${analysisParams.days} days of data (${dataToAnalyze.length} days available)`);
+      } else {
+        console.log(`  ⏱  Using all ${stockData.length} days of data`);
       }
 
       const {
         initial_capital = 100000,
         atr_period = 14,
         atr_multiplier = 2.0,
+        atr_multiplier_long = atr_multiplier || 2.0,
+        atr_multiplier_short = 1.5,
         ma_type = 'ema',
         position_sizing_percentage = 5.0,
+        position_sizing_long = position_sizing_percentage || 5.0,
+        position_sizing_short = 3.0,
         mean_reversion_threshold = 10.0,
         custom_fast_ma = undefined,
-        custom_slow_ma = undefined
+        custom_slow_ma = undefined,
+        strategy_mode = 'long'
       } = analysisParams;
-
-      // Slice data if days parameter is specified
-      let dataToAnalyze = stockData;
-      if (analysisParams.days && analysisParams.days > 0) {
-        // Take the most recent N days
-        dataToAnalyze = stockData.slice(-analysisParams.days);
-        console.log(`  ⏱  Using last ${analysisParams.days} days of data (${dataToAnalyze.length} days available)`);
-      } else {
-        console.log(`  ⏱  Using all ${stockData.length} days of data`);
-      }
 
       const engine = new MATradingEngine(
         initial_capital,
         atr_period,
-        atr_multiplier,
+        atr_multiplier_long,
+        atr_multiplier_short,
         ma_type,
         custom_fast_ma || undefined,
         custom_slow_ma || undefined,
         mean_reversion_threshold,
-        position_sizing_percentage
+        position_sizing_long,
+        position_sizing_short,
+        strategy_mode
       );
 
       const results = await engine.runAnalysis(dataToAnalyze, symbol);
 
       const totalTrades = results.trades.length;
+      
+      // Check for minimum trades - flat/low volatility stocks may not generate signals
+      if (totalTrades === 0) {
+        const errorMsg = `No trades generated (flat/low volatility stock - no MA crossover signals)`;
+        console.log(`  ⚠️  ${errorMsg}`);
+        return { success: false, error: errorMsg };
+      }
+      
+      if (totalTrades < 3) {
+        const errorMsg = `Only ${totalTrades} trade(s) generated (insufficient activity for meaningful analysis)`;
+        console.log(`  ⚠️  ${errorMsg}`);
+        return { success: false, error: errorMsg };
+      }
+      
       const winningTrades = results.trades.filter(t => t.pnl && t.pnl > 0).length;
       const winRate = totalTrades > 0 ? (winningTrades / totalTrades * 100) : 0;
 
@@ -111,11 +144,12 @@ export class PerformanceAnalyzer {
       );
 
       console.log(`  ✅ Performance analysis: ${totalReturnPct.toFixed(2)}% return, ${totalTrades} trades`);
-      return true;
+      return { success: true };
 
     } catch (error) {
-      console.error(`  ❌ Error analyzing ${symbol}:`, error);
-      return false;
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`  ❌ Error analyzing ${symbol}:`, errorMsg);
+      return { success: false, error: errorMsg };
     }
   }
 
@@ -130,10 +164,12 @@ export class PerformanceAnalyzer {
     sharpeRatio: number,
     analysisParams: AnalysisParams
   ): Promise<void> {
+    const strategyMode = analysisParams.strategy_mode || 'long';
+    
     const query = `
       INSERT INTO stock_performance_metrics 
-      (symbol_id, analysis_date, time_period, total_return_pct, total_pnl, win_rate, total_trades, sharpe_ratio, analysis_params)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (symbol_id, analysis_date, time_period, strategy_mode, total_return_pct, total_pnl, win_rate, total_trades, sharpe_ratio, analysis_params)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
       total_return_pct = VALUES(total_return_pct),
       total_pnl = VALUES(total_pnl),
@@ -148,6 +184,7 @@ export class PerformanceAnalyzer {
       symbolId,
       analysisDate.toISOString().split('T')[0],
       timePeriod,
+      strategyMode,
       parseFloat(totalReturnPct.toFixed(2)),
       parseFloat(totalPnl.toFixed(2)),
       parseFloat(winRate.toFixed(1)),

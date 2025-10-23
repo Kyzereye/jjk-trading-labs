@@ -41,9 +41,12 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
     this.analysisForm = this.fb.group({
       symbol: ['', Validators.required],
       days: [365, [Validators.min(1), Validators.max(2000)]],
+      fastMa: [21, [Validators.required, Validators.min(5), Validators.max(50)]],
+      slowMa: [50, [Validators.required, Validators.min(20), Validators.max(200)]],
       atrMultiplier: [2.0, [Validators.min(0.5), Validators.max(5.0)]],
       maType: ['ema', Validators.required],
-      meanReversionThreshold: [10.0, [Validators.min(3), Validators.max(15)]]
+      meanReversionThreshold: [10.0, [Validators.min(3), Validators.max(15)]],
+      strategyMode: ['long', Validators.required]
     });
   }
 
@@ -95,7 +98,9 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
     if (user?.preferences) {
       this.analysisForm.patchValue({
         days: user.preferences.default_days || 365,
-        atrMultiplier: user.preferences.default_atr_multiplier || 2.0,
+        fastMa: user.preferences.default_fast_ma || 21,
+        slowMa: user.preferences.default_slow_ma || 50,
+        atrMultiplier: user.preferences.atr_multiplier_long || user.preferences.default_atr_multiplier || 2.0,
         maType: user.preferences.default_ma_type || 'ema',
         meanReversionThreshold: user.preferences.mean_reversion_threshold || 10.0
       });
@@ -150,11 +155,14 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
         symbol: formValue.symbol.toUpperCase(),
         initial_capital: user?.preferences?.default_initial_capital || 100000,
         days: formValue.days,
+        custom_fast_ma: formValue.fastMa,
+        custom_slow_ma: formValue.slowMa,
         atr_period: user?.preferences?.default_atr_period || 14,
         atr_multiplier: formValue.atrMultiplier,
         mean_reversion_threshold: formValue.meanReversionThreshold,
-        position_sizing_percentage: user?.preferences?.position_sizing_percentage || 5.0,
-        ma_type: formValue.maType
+        position_sizing_percentage: user?.preferences?.position_sizing_long || user?.preferences?.position_sizing_percentage || 5.0,
+        ma_type: formValue.maType,
+        strategy_mode: formValue.strategyMode
       };
 
       this.apiService.analyzeEMA(request).subscribe({
@@ -166,7 +174,19 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           this.loading = false;
-          console.error('Analysis failed:', error);
+          
+          // Extract user-friendly error message
+          let errorMessage = 'Analysis failed. Please try again.';
+          if (error.error?.message) {
+            errorMessage = error.error.message;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          
+          this.snackBar.open(errorMessage, 'Close', { 
+            duration: 8000,
+            panelClass: ['snackbar-error']
+          });
         }
       });
     }
@@ -187,7 +207,7 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
         this.updateChart();
       },
       error: (error) => {
-        console.error('Failed to load chart data:', error);
+        // Chart data loading failed - continue without chart
       }
     });
   }
@@ -281,7 +301,7 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
         }
       },
       error: (error) => {
-        console.error('Error loading favorites:', error);
+        // Favorites loading failed - continue without favorites
       }
     });
   }
@@ -304,7 +324,7 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
           this.snackBar.open(`${upperSymbol} removed from favorites`, 'Close', { duration: 2000 });
         },
         error: (error) => {
-          console.error('Failed to remove from favorites:', error);
+          this.snackBar.open('Failed to remove from favorites', 'Close', { duration: 3000 });
         }
       });
     } else {
@@ -315,7 +335,7 @@ export class EmaTradingComponent implements OnInit, OnDestroy {
           this.snackBar.open(`${upperSymbol} added to favorites`, 'Close', { duration: 2000 });
         },
         error: (error) => {
-          console.error('Failed to add to favorites:', error);
+          this.snackBar.open('Failed to add to favorites', 'Close', { duration: 3000 });
         }
       });
     }

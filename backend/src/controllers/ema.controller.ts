@@ -29,11 +29,14 @@ router.post('/analyze', authMiddleware, asyncHandler(async (req: AuthRequest, re
     symbol,
     initial_capital = 100000,
     days = 0,
+    custom_fast_ma,
+    custom_slow_ma,
     atr_period = 14,
     atr_multiplier = 2.0,
     mean_reversion_threshold = 10.0,
     position_sizing_percentage = 5.0,
-    ma_type = 'ema'
+    ma_type = 'ema',
+    strategy_mode = 'long'
   } = req.body;
 
   // Ensure days is a number
@@ -46,7 +49,18 @@ router.post('/analyze', authMiddleware, asyncHandler(async (req: AuthRequest, re
   // Get stock data
   const stockData = await getStockData(symbol.toUpperCase(), daysNum);
   if (!stockData) {
-    throw createError(`No data found for symbol ${symbol}`, 404);
+    throw createError(
+      `Data not available for ${symbol.toUpperCase()}. This symbol may not be in our database yet. Please check the symbol or contact support to request this stock be added.`,
+      404
+    );
+  }
+  
+  // Check for minimum data requirements
+  if (stockData.length < 60) {
+    throw createError(
+      `Insufficient data for ${symbol.toUpperCase()}. Only ${stockData.length} days available. Need at least 60 days of historical data for MA analysis. This stock may be too new or have limited trading history.`,
+      400
+    );
   }
 
   // Convert to StockData format
@@ -63,15 +77,34 @@ router.post('/analyze', authMiddleware, asyncHandler(async (req: AuthRequest, re
   const engine = new MATradingEngine(
     initial_capital,
     atr_period,
-    atr_multiplier,
+    atr_multiplier, // atr_multiplier_long
+    atr_multiplier * 0.75, // atr_multiplier_short (tighter)
     ma_type,
-    undefined,
-    undefined,
+    custom_fast_ma,
+    custom_slow_ma,
     mean_reversion_threshold,
-    position_sizing_percentage
+    position_sizing_percentage, // position_sizing_long
+    position_sizing_percentage * 0.6, // position_sizing_short (smaller)
+    strategy_mode as 'long' | 'short' | 'both'
   );
 
   const results = await engine.runAnalysis(data, symbol.toUpperCase());
+  
+  // Check if any trades were generated
+  if (!results.trades || results.trades.length === 0) {
+    throw createError(
+      `No trading signals generated for ${symbol.toUpperCase()}. This stock shows flat/low volatility price action with no MA crossover signals. The MA strategy may not be suitable for this stock. Try a stock with more price movement.`,
+      400
+    );
+  }
+  
+  // Check for meaningful analysis (at least 3 trades)
+  if (results.trades.length < 3) {
+    throw createError(
+      `Insufficient trading activity for ${symbol.toUpperCase()}. Only ${results.trades.length} trade(s) generated. Need at least 3 trades for meaningful analysis. This stock may have very low volatility or limited price movement.`,
+      400
+    );
+  }
 
   // Convert results to JSON-serializable format
   const response = {
@@ -153,7 +186,19 @@ router.get('/analyze/:symbol', asyncHandler(async (req: Request, res: Response) 
   }));
 
   // Run MA analysis
-  const engine = new MATradingEngine(initial_capital, atr_period, atr_multiplier, ma_type);
+  const engine = new MATradingEngine(
+    initial_capital,
+    atr_period,
+    atr_multiplier, // atr_multiplier_long
+    atr_multiplier * 0.75, // atr_multiplier_short
+    ma_type,
+    undefined,
+    undefined,
+    10.0, // mean_reversion_threshold
+    5.0, // position_sizing_long
+    3.0, // position_sizing_short
+    'long' // strategy_mode
+  );
   const results = await engine.runAnalysis(data, symbol.toUpperCase());
 
   // Convert results to JSON-serializable format
@@ -225,7 +270,19 @@ router.get('/signals/:symbol', asyncHandler(async (req: Request, res: Response) 
   }));
 
   // Run MA analysis
-  const engine = new MATradingEngine(100000, 14, 2.0, 'ema', undefined, undefined, 7.0);
+  const engine = new MATradingEngine(
+    100000, // initial_capital
+    14, // atr_period
+    2.0, // atr_multiplier_long
+    1.5, // atr_multiplier_short
+    'ema', // ma_type
+    undefined, // custom_fast_ma
+    undefined, // custom_slow_ma
+    7.0, // mean_reversion_threshold
+    5.0, // position_sizing_long
+    3.0, // position_sizing_short
+    'long' // strategy_mode
+  );
   const results = await engine.runAnalysis(data, symbol.toUpperCase());
 
   // Return only signals
@@ -279,7 +336,19 @@ router.get('/summary/:symbol', asyncHandler(async (req: Request, res: Response) 
   }));
 
   // Run MA analysis
-  const engine = new MATradingEngine(initial_capital, 14, 2.0, 'ema', undefined, undefined, 7.0);
+  const engine = new MATradingEngine(
+    initial_capital,
+    14, // atr_period
+    2.0, // atr_multiplier_long
+    1.5, // atr_multiplier_short
+    'ema',
+    undefined,
+    undefined,
+    7.0, // mean_reversion_threshold
+    5.0, // position_sizing_long
+    3.0, // position_sizing_short
+    'long' // strategy_mode
+  );
   const results = await engine.runAnalysis(data, symbol.toUpperCase());
 
   // Return summary
@@ -313,7 +382,8 @@ router.post('/top-performers', authMiddleware, asyncHandler(async (req: AuthRequ
     limit = 20,
     sort_by = 'total_return_pct',
     min_trades = 5,
-    time_period = 'ALL'
+    time_period = 'ALL',
+    strategy_mode = 'long'
   } = req.body;
 
   // Ensure limit is a valid number
@@ -327,6 +397,10 @@ router.post('/top-performers', authMiddleware, asyncHandler(async (req: AuthRequ
   // Validate time_period
   const validTimePeriods = ['ALL', '1Y'];
   const timePeriod = validTimePeriods.includes(time_period) ? time_period : 'ALL';
+  
+  // Validate strategy_mode
+  const validStrategyModes = ['long', 'short', 'both'];
+  const strategyMode = validStrategyModes.includes(strategy_mode) ? strategy_mode : 'long';
 
   // Build query with safe ORDER BY and LIMIT (using interpolation for LIMIT is safe with validated number)
   let query = `
@@ -344,7 +418,8 @@ router.post('/top-performers', authMiddleware, asyncHandler(async (req: AuthRequ
     JOIN stock_symbols s ON p.symbol_id = s.id
     WHERE p.total_trades >= ?
       AND p.time_period = ?
-      AND p.analysis_date = (SELECT MAX(analysis_date) FROM stock_performance_metrics WHERE time_period = ?)
+      AND p.strategy_mode = ?
+      AND p.analysis_date = (SELECT MAX(analysis_date) FROM stock_performance_metrics WHERE time_period = ? AND strategy_mode = ?)
   `;
   
   // Add ORDER BY based on validated field
@@ -362,7 +437,7 @@ router.post('/top-performers', authMiddleware, asyncHandler(async (req: AuthRequ
   const { getDbConnection } = await import('../utils/database');
   const db = getDbConnection();
   
-  const [rows] = await db.execute(query, [minTradesNum, timePeriod, timePeriod]);
+  const [rows] = await db.execute(query, [minTradesNum, timePeriod, strategyMode, timePeriod, strategyMode]);
   
   const topPerformers = (rows as any[]).map(row => ({
     symbol: row.symbol,
@@ -375,17 +450,17 @@ router.post('/top-performers', authMiddleware, asyncHandler(async (req: AuthRequ
     analysis_date: row.analysis_date
   }));
 
-  // Get total analyzed count for this time period
+  // Get total analyzed count for this time period and strategy
   const [countRows] = await db.execute(
-    'SELECT COUNT(*) as count FROM stock_performance_metrics WHERE time_period = ? AND analysis_date = (SELECT MAX(analysis_date) FROM stock_performance_metrics WHERE time_period = ?)',
-    [timePeriod, timePeriod]
+    'SELECT COUNT(*) as count FROM stock_performance_metrics WHERE time_period = ? AND strategy_mode = ? AND analysis_date = (SELECT MAX(analysis_date) FROM stock_performance_metrics WHERE time_period = ? AND strategy_mode = ?)',
+    [timePeriod, strategyMode, timePeriod, strategyMode]
   );
   const totalAnalyzed = (countRows as any[])[0]?.count || 0;
 
-  // Get latest analysis date for this time period
+  // Get latest analysis date for this time period and strategy
   const [dateRows] = await db.execute(
-    'SELECT MAX(analysis_date) as latest FROM stock_performance_metrics WHERE time_period = ?',
-    [timePeriod]
+    'SELECT MAX(analysis_date) as latest FROM stock_performance_metrics WHERE time_period = ? AND strategy_mode = ?',
+    [timePeriod, strategyMode]
   );
   const latestAnalysisDate = (dateRows as any[])[0]?.latest || null;
 
