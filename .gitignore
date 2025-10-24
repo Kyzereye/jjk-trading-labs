@@ -66,18 +66,18 @@ Thumbs.db
 
 # Backend Compiled Files
 /backend/dist/
-/backend/*.js
-/backend/*.d.ts
-/backend/*.js.map
-/backend/*.d.ts.map
-/backend/controllers/*.js
-/backend/controllers/*.d.ts
-/backend/middleware/*.js
-/backend/middleware/*.d.ts
-/backend/services/*.js
-/backend/services/*.d.ts
-/backend/utils/*.js
-/backend/utils/*.d.ts
+# /backend/*.js
+# /backend/*.d.ts
+# /backend/*.js.map
+# /backend/*.d.ts.map
+# /backend/controllers/*.js
+# /backend/controllers/*.d.ts
+# /backend/middleware/*.js
+# /backend/middleware/*.d.ts
+# /backend/services/*.js
+# /backend/services/*.d.ts
+# /backend/utils/*.js
+# /backend/utils/*.d.ts
 
 # CSV Files (data backups - not needed in Git)
 /get_stock_data/csv_files/
