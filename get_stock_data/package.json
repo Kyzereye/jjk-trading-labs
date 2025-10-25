@@ -12,17 +12,23 @@
     "expand-historical": "ts-node src/scripts/expand-historical-data.ts"
   },
   "dependencies": {
-    "mysql2": "^3.6.0",
-    "yahoo-finance2": "^2.11.0",
+    "csv-writer": "^1.6.0",
     "dotenv": "^16.3.0",
-    "csv-writer": "^1.6.0"
+    "mysql2": "^3.6.0",
+    "yahoo-finance2": "^2.13.3"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
     "ts-node": "^10.9.0",
-    "@types/node": "^20.0.0"
+    "typescript": "^5.0.0"
   },
-  "keywords": ["stocks", "data", "fetching", "yfinance", "mysql"],
+  "keywords": [
+    "stocks",
+    "data",
+    "fetching",
+    "yfinance",
+    "mysql"
+  ],
   "author": "JJK Trading Labs",
   "license": "MIT"
 }
