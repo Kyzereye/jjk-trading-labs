@@ -176,6 +176,9 @@ INSERT IGNORE INTO stock_symbols (symbol, company_name) VALUES
 ('AAPL', 'Apple Inc.'),
 ('ABBV', 'AbbVie'),
 ('ABNB', 'Airbnb'),
+<<<<<<< HEAD
+('ABT', 'Abbott Laboratories');
+=======
 ('ABT', 'Abbott Laboratories'),
 ('ACGL', 'Arch Capital Group'),
 ('ACHR', 'Archer Aviation'),
@@ -974,3 +977,4 @@ INSERT IGNORE INTO stock_symbols (symbol, company_name) VALUES
 ('ZTS', 'Zoetis'); 
 
 -- Total: 623 symbols (S&P 500 + Additional stocks)
+>>>>>>> cc4b37108849f1e58ba1d5bb882acda0dbc0077f

@@ -29,7 +29,12 @@ const PORT = parseInt(process.env.PORT || '2222');
 
 // CORS configuration (must be before other middleware)
 app.use(cors({
-  origin: ['http://localhost:1111', 'http://127.0.0.1:1111'],
+  origin: [
+    'http://localhost:1111', 
+    'http://127.0.0.1:1111',
+    'https://jjktradinglabs.com',
+    'https://www.jjktradinglabs.com'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
