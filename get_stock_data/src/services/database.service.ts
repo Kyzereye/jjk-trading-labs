@@ -40,6 +40,13 @@ export class DatabaseService {
   }
 
   /**
+   * Execute a query for batch inserts (uses query() instead of execute())
+   */
+  async query(sql: string, params: any[]): Promise<any> {
+    return await this.pool.query(sql, params);
+  }
+
+  /**
    * Get or create symbol ID
    */
   async getSymbolId(symbol: string): Promise<number> {

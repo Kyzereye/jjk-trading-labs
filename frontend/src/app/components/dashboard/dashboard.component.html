@@ -90,6 +90,221 @@
       </div>
     </mat-expansion-panel>
 
+    <!-- Trading Alerts - Full Width -->
+    <mat-expansion-panel 
+      [expanded]="alerts.length > 0"
+      class="alerts-panel full-width">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <mat-icon>notifications_active</mat-icon>
+          Trading Alerts
+          <span *ngIf="filteredAlerts.length > 0" class="count-badge">{{ filteredAlerts.length }} / {{ alerts.length }}</span>
+        </mat-panel-title>
+        <mat-panel-description *ngIf="alerts.length === 0">
+          No recent alerts
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      
+      <div class="panel-content">
+        <!-- Action Bar: Favorite Button + Filter Toggle -->
+        <div class="action-bar" *ngIf="!alertsLoading && alerts.length > 0">
+          <button mat-raised-button 
+                  class="action-btn" 
+                  (click)="toggleFavoritesFilter()">
+            <mat-icon class="btn-icon">star</mat-icon>
+            <span class="btn-text">{{ (showOnlyFavorites ? 'Show All Alerts' : 'Show Favorite Alerts') | uppercase }}</span>
+          </button>
+          
+          <button mat-icon-button (click)="toggleFilters()" matTooltip="{{ showFilters ? 'Hide Filters' : 'Show Filters' }}" class="filter-toggle-btn">
+            <mat-icon>{{ showFilters ? 'filter_list' : 'filter_list_off' }}</mat-icon>
+          </button>
+        </div>
+        
+        <!-- Filters -->
+        <div class="alert-filters" *ngIf="!alertsLoading && alerts.length > 0 && showFilters">
+          <div class="filter-row">
+            
+            <div class="filter-field-group">
+              <label>Symbol Search</label>
+              <div class="simple-search-field">
+              <mat-icon>search</mat-icon>
+              <input 
+                type="text"
+                [formControl]="symbolSearchControl"
+                placeholder="Search symbols..."
+                style="text-transform: uppercase;"
+                [matAutocomplete]="symbolAuto">
+              <mat-autocomplete #symbolAuto="matAutocomplete">
+                <mat-option *ngFor="let symbol of filteredSymbols$ | async" [value]="symbol">
+                  {{ symbol }}
+                </mat-option>
+              </mat-autocomplete>
+            </div>
+            </div>
+            
+            <div class="filter-field-group">
+              <label>Time Period</label>
+              <div class="simple-select-field">
+                <select [(ngModel)]="selectedPeriod" (ngModelChange)="onPeriodChange()">
+                  <option value="3days">Last 3 Days</option>
+                  <option value="week">Last Week</option>
+                  <option value="10days">Last 10 Days</option>
+                  <option value="2weeks">Last 2 Weeks</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="filter-field-group">
+              <label>Day</label>
+              <div class="simple-select-field">
+                <select [(ngModel)]="selectedDay">
+                  <option value="all">All Days</option>
+                  <option *ngFor="let day of availableDays" [value]="day">
+                    {{ day | date:'MMM d, y' }}
+                  </option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="filter-field-group">
+              <label>Direction</label>
+              <div class="simple-select-field">
+                <select [(ngModel)]="selectedDirection">
+                  <option value="all">All</option>
+                  <option value="long">Long</option>
+                  <option value="short">Short</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="filter-field-group">
+              <label>Type</label>
+              <div class="simple-select-field">
+                <select [(ngModel)]="selectedType">
+                  <option value="all">All</option>
+                  <option value="entry">Entry</option>
+                  <option value="exit">Exit</option>
+                  <option value="mean_reversion">Mean Reversion</option>
+                </select>
+              </div>
+            </div>
+            
+            <button mat-icon-button class="filter-reset-btn" (click)="resetFilters()" matTooltip="Reset Filters">
+              <mat-icon>refresh</mat-icon>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Loading State -->
+        <div *ngIf="alertsLoading" class="loading-container">
+          <mat-spinner diameter="30"></mat-spinner>
+          <p>Loading alerts...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!alertsLoading && filteredAlerts.length === 0 && alerts.length === 0" class="empty-state">
+          <mat-icon>notifications_off</mat-icon>
+          <h3>No Recent Alerts</h3>
+          <p>No trading signals have been generated in the selected time period.</p>
+        </div>
+        
+        <!-- No Results from Filters -->
+        <div *ngIf="!alertsLoading && filteredAlerts.length === 0 && alerts.length > 0" class="empty-state">
+          <mat-icon>filter_alt</mat-icon>
+          <h3>No Alerts Match Filters</h3>
+          <p>Try adjusting your filter settings to see more results.</p>
+        </div>
+
+        <!-- Alerts List -->
+        <div *ngIf="!alertsLoading && filteredAlerts.length > 0" class="alerts-list">
+          <div *ngFor="let dayGroup of groupedAlertsByDate; let last = last">
+            <!-- Date header -->
+            <div class="date-group-header">
+              <h3>{{ dayGroup.date | date:'EEEE, MMMM d' }}</h3>
+            </div>
+            
+            <!-- Alerts for this day -->
+            <div *ngFor="let alert of dayGroup.alerts" class="alert-container">
+              <div class="alert-item clickable" 
+                   [ngClass]="'alert-' + alert.signalType + '-' + alert.signalDirection"
+                   (click)="onAlertClick(alert)">
+                <div class="alert-icon">
+                  <mat-icon *ngIf="alert.signalType === 'entry'">trending_up</mat-icon>
+                  <mat-icon *ngIf="alert.signalType === 'exit'">trending_down</mat-icon>
+                  <mat-icon *ngIf="alert.signalType === 'mean_reversion'">swap_horiz</mat-icon>
+                </div>
+                <div class="alert-content">
+                  <div class="alert-header">
+                    <span class="symbol">{{ alert.symbol }}</span>
+                    <span class="signal-type">{{ alert.signalType | titlecase }} {{ alert.signalDirection | titlecase }}</span>
+                    <span class="price">${{ alert.price | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="alert-details">
+                    <span *ngIf="alert.ma21Value" class="ma-value">MA21: ${{ alert.ma21Value | number:'1.2-2' }}</span>
+                    <span *ngIf="alert.ma50Value" class="ma-value">MA50: ${{ alert.ma50Value | number:'1.2-2' }}</span>
+                    <span *ngIf="alert.deviationPercent" class="deviation">{{ alert.deviationPercent | number:'1.1-1' }}% deviation</span>
+                  </div>
+                  <div class="alert-time">
+                    <span *ngIf="alert.signalTime">{{ alert.signalTime }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Expanded Details -->
+              <div *ngIf="isExpanded(alert.id)" class="alert-expanded">
+                <h4>All Recent Alerts for {{ alert.symbol }}</h4>
+                <div class="symbol-alerts-list">
+                  <div *ngFor="let symbolAlert of getAlertsForSymbol(alert.symbol)" class="symbol-alert-item">
+                    <div class="signal-badge" [ngClass]="symbolAlert.signalType + ' ' + symbolAlert.signalDirection">
+                      {{ symbolAlert.signalType | uppercase }} {{ symbolAlert.signalDirection | uppercase }}
+                    </div>
+                    <span class="alert-date">{{ symbolAlert.signalDate | date:'MMM d, y' }}</span>
+                    <span class="alert-price">${{ symbolAlert.price | number:'1.2-2' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Divider between days (not after the last day) -->
+            <mat-divider *ngIf="!last" style="margin: 20px 0;"></mat-divider>
+          </div>
+        </div>
+        
+        <!-- Pagination Controls -->
+        <div *ngIf="!alertsLoading && filteredAlerts.length > 0" class="pagination-controls">
+          <div class="pagination-left">
+            <div class="pagination-info">
+              Showing {{ currentPage * pageSize + 1 }} - {{ Math.min((currentPage + 1) * pageSize, filteredAlerts.length) }} of {{ filteredAlerts.length }}
+            </div>
+            
+            <div class="simple-select-field">
+              <select [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange($event)">
+                <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="pagination-buttons" *ngIf="filteredAlerts.length > pageSize">
+            <button mat-icon-button 
+                    (click)="previousPage()" 
+                    [disabled]="currentPage === 0">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            
+            <span class="page-numbers">
+              Page {{ currentPage + 1 }} of {{ totalPages }}
+            </span>
+            
+            <button mat-icon-button 
+                    (click)="nextPage()" 
+                    [disabled]="currentPage >= totalPages - 1">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </mat-expansion-panel>
+
     <!-- Favorite Stocks Watchlist - Full Width -->
     <mat-expansion-panel 
       [expanded]="favoriteStocks.length > 0"

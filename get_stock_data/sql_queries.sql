@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS user_trades;
 DROP TABLE IF EXISTS user_usage;
 DROP TABLE IF EXISTS user_preferences;
 DROP TABLE IF EXISTS stock_performance_metrics;
+DROP TABLE IF EXISTS trading_signals;
 DROP TABLE IF EXISTS daily_stock_data;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS stock_symbols;
@@ -169,6 +170,27 @@ CREATE TABLE IF NOT EXISTS user_trades (
     INDEX idx_user_symbol (user_id, symbol)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Create trading_signals table for storing daily alerts
+CREATE TABLE IF NOT EXISTS trading_signals (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    symbol_id INT NOT NULL,
+    signal_type ENUM('entry', 'exit', 'mean_reversion') NOT NULL,
+    signal_direction ENUM('long', 'short') NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    ma21_value DECIMAL(10,2),
+    ma50_value DECIMAL(10,2),
+    deviation_percent DECIMAL(5,2),
+    signal_date DATE NOT NULL,
+    signal_time TIME,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (symbol_id) REFERENCES stock_symbols(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_signal (symbol_id, signal_type, signal_direction, signal_date),
+    INDEX idx_symbol_signal_date (symbol_id, signal_date),
+    INDEX idx_signal_type (signal_type),
+    INDEX idx_signal_date (signal_date),
+    INDEX idx_signal_direction (signal_direction)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Insert stock symbols (S&P 500 + Additional stocks)
 INSERT IGNORE INTO stock_symbols (symbol, company_name) VALUES
 ('A', 'Agilent Technologies'),
@@ -176,9 +198,6 @@ INSERT IGNORE INTO stock_symbols (symbol, company_name) VALUES
 ('AAPL', 'Apple Inc.'),
 ('ABBV', 'AbbVie'),
 ('ABNB', 'Airbnb'),
-<<<<<<< HEAD
-('ABT', 'Abbott Laboratories');
-=======
 ('ABT', 'Abbott Laboratories'),
 ('ACGL', 'Arch Capital Group'),
 ('ACHR', 'Archer Aviation'),
@@ -266,7 +285,6 @@ INSERT IGNORE INTO stock_symbols (symbol, company_name) VALUES
 ('BG', 'Bunge Global'),
 ('BHF', 'Brighthouse Financial'),
 ('BIIB', 'Biogen'),
-('BINI', 'Bollinger Innovations Inc'),
 ('BITU', 'ProShares Ultra Bitcoin ETF'),
 ('BITX', '2x Bitcoin Strategy ETF'),
 ('BJRI', 'BJ''s Restaurant Inc'),
@@ -717,7 +735,6 @@ INSERT IGNORE INTO stock_symbols (symbol, company_name) VALUES
 ('OZK', 'Bank OZK'),
 ('PANW', 'Palo Alto Networks'),
 ('PAR', 'Par Technology Corp'),
-('PARA', 'Paramount Global'),
 ('PAY', 'Paymentus Holdings Inc'),
 ('PAYC', 'Paycom'),
 ('PAYX', 'Paychex'),
@@ -742,6 +759,7 @@ INSERT IGNORE INTO stock_symbols (symbol, company_name) VALUES
 ('PINC', 'Premier Inc.'),
 ('PINS', 'Pinterest Inc'),
 ('PKG', 'Packaging Corporation of America'),
+("PKSY", 'Paramount Skydance Corp'),
 ('PLD', 'Prologis'),
 ('PLTR', 'Palantir Technologies'),
 ('PM', 'Philip Morris International'),
@@ -977,4 +995,4 @@ INSERT IGNORE INTO stock_symbols (symbol, company_name) VALUES
 ('ZTS', 'Zoetis'); 
 
 -- Total: 623 symbols (S&P 500 + Additional stocks)
->>>>>>> cc4b37108849f1e58ba1d5bb882acda0dbc0077f
+

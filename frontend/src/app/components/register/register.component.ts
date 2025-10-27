@@ -31,10 +31,10 @@ export class RegisterComponent {
     private snackBar: MatSnackBar
   ) {
     this.registerForm = this.fb.group({
-      name: ['', [Validators.required, Validators.minLength(2)]],
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, this.passwordStrengthValidator.bind(this)]],
-      confirmPassword: ['', Validators.required]
+      name: ['jeff', [Validators.required, Validators.minLength(2)]],
+      email: ['kyzereye@gmail.com', [Validators.required, Validators.email]],
+      password: ['1qazxsw2!QAZ', [Validators.required, this.passwordStrengthValidator.bind(this)]],
+      confirmPassword: ['1qazxsw2!QAZ', Validators.required]
     }, { validators: this.passwordMatchValidator });
 
     // Watch password changes to update requirements checklist

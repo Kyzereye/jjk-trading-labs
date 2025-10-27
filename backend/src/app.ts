@@ -49,7 +49,7 @@ app.use(compression());
 // Rate limiting - exclude OPTIONS requests from rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // More lenient in development
   message: 'Too many requests from this IP, please try again later.',
   skip: (req) => req.method === 'OPTIONS' // Don't rate limit preflight requests
 });
@@ -80,6 +80,13 @@ app.use('/api/optimization', optimizationRoutes);
 // Trades routes
 import tradesRoutes from './controllers/trades.controller';
 app.use('/api/trades', tradesRoutes);
+
+// Alerts routes
+import { AlertsController } from './controllers/alerts.controller';
+const alertsController = new AlertsController();
+app.get('/api/alerts', (req, res) => alertsController.getAlerts(req, res));
+app.get('/api/alerts/stats', (req, res) => alertsController.getSignalStats(req, res));
+app.get('/api/alerts/symbol', (req, res) => alertsController.getAlertsForSymbol(req, res));
 
 // Stock symbols management routes
 import symbolsRoutes from './routes/symbols.routes';

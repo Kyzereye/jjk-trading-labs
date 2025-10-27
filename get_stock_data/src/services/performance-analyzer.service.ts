@@ -107,6 +107,9 @@ export class PerformanceAnalyzer {
 
       const results = await engine.runAnalysis(dataToAnalyze, symbol);
 
+      // Store recent signals (last 14 days)
+      await this.storeRecentSignals(symbol, results.signals, results.mean_reversion_alerts);
+
       const totalTrades = results.trades.length;
       
       // Check for minimum trades - flat/low volatility stocks may not generate signals
@@ -267,6 +270,79 @@ export class PerformanceAnalyzer {
 
   async close(): Promise<void> {
     await this.db.close();
+  }
+
+  /**
+   * Store recent trading signals in the database (last 14 trading days)
+   */
+  async storeRecentSignals(symbol: string, signals: any[], meanReversionAlerts: any[]): Promise<void> {
+    try {
+      const symbolId = await this.db.getSymbolId(symbol);
+      const fourteenDaysAgo = new Date();
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+      // Combine signals and alerts, filter to last 14 days, and deduplicate
+      const allSignals = [
+        ...signals.map(s => ({
+          date: s.date,
+          signalType: s.signal_type === 'BUY' || s.signal_type === 'SELL_SHORT' ? 'entry' : 
+                     s.signal_type === 'SELL' || s.signal_type === 'BUY_TO_COVER' ? 'exit' : null,
+          direction: s.position_type || 'long',
+          price: s.price,
+          ma21: s.ma_21,
+          ma50: s.ma_50,
+          deviation: null
+        })),
+        ...meanReversionAlerts.map(a => ({
+          date: a.date,
+          signalType: 'mean_reversion',
+          direction: a.position_type || 'long',
+          price: a.price,
+          ma21: a.ma_21,
+          ma50: null,
+          deviation: a.deviation_from_ma21
+        }))
+      ].filter(s => s.date >= fourteenDaysAgo && s.signalType);
+
+      if (allSignals.length === 0) {
+        return;
+      }
+
+      // Deduplicate: only keep one signal per day per symbol per type
+      const signalMap = new Map<string, any>();
+      for (const signal of allSignals) {
+        const key = `${signal.date.toISOString().split('T')[0]}_${signal.signalType}_${signal.direction}`;
+        if (!signalMap.has(key)) {
+          signalMap.set(key, signal);
+        }
+      }
+
+      const uniqueSignals = Array.from(signalMap.values());
+
+      // Insert signals into database using batch insert
+      // Use INSERT IGNORE to skip duplicates without ON DUPLICATE KEY (we want true deduplication)
+      const query = `
+        INSERT IGNORE INTO trading_signals 
+        (symbol_id, signal_type, signal_direction, price, ma21_value, ma50_value, deviation_percent, signal_date)
+        VALUES ?
+      `;
+
+      const values = uniqueSignals.map(s => [
+        symbolId,
+        s.signalType,
+        s.direction,
+        s.price,
+        s.ma21 || null,
+        s.ma50 || null,
+        s.deviation || null,
+        s.date
+      ]);
+
+      await this.db.query(query, [values]);
+      
+    } catch (error) {
+      console.error(`Error storing signals for ${symbol}:`, error);
+    }
   }
 }
 

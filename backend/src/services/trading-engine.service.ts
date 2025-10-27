@@ -268,6 +268,7 @@ export class MATradingEngine {
     let lastExitDate: Date | null = null;
     let reentryCount = 0;
     let trendStartDate: Date | null = null;
+    let wasBelowSlowMA = false; // Track if price was below slow MA at start
 
     const startIndex = Math.max(this.ma50Period, this.atrPeriod);
 
@@ -283,13 +284,29 @@ export class MATradingEngine {
         continue;
       }
 
+      // Entry Condition: Price must be below slow MA at starting point
+      if (i === startIndex) {
+        // First bar, check if price is below slow MA
+        if (currentPrice < ma50Value) {
+          wasBelowSlowMA = true; // Track that we started below slow MA
+        }
+      } else if (!wasBelowSlowMA && currentPrice < ma50Value) {
+        // Find when price first goes below slow MA
+        wasBelowSlowMA = true;
+      }
+
+      // Can't enter if we haven't seen price below slow MA yet
+      if (!wasBelowSlowMA) {
+        continue;
+      }
+
       // Check if we're in a new trend
       const isNewTrend = (!inTrade &&
         currentPrice > ma50Value &&
         i > 0 &&
         data[i - 1].close <= ma50[i - 1]);
 
-      // Check if we can re-enter
+      // Check if we can re-enter (only if exited while still above slow MA)
       const canReenter = (!inTrade &&
         lastExitDate !== null &&
         currentPrice > ma21Value &&
@@ -297,52 +314,8 @@ export class MATradingEngine {
         i > 0 &&
         data[i - 1].close <= ma21[i - 1]);
 
-      // ENTRY LOGIC
-      if (isNewTrend) {
-        // Primary entry: Price closes above 50 MA
-        const confidence = Math.min(0.9, Math.abs(currentPrice - ma50Value) / ma50Value * 10);
-        currentTrailingStop = currentPrice - (atrValue * this.atrMultiplierLong);
-        highestPriceSinceEntry = currentPrice;
-        trendStartDate = date;
-        reentryCount = 0;
-
-        signals.push({
-          date,
-          signal_type: 'BUY',
-          price: currentPrice,
-          ma_21: ma21Value,
-          ma_50: ma50Value,
-          reasoning: `Primary entry: Price ${currentPrice.toFixed(2)} closed above 50 ${this.maType.toUpperCase()} ${ma50Value.toFixed(2)}`,
-          confidence,
-          atr: atrValue,
-          trailing_stop: currentTrailingStop,
-          position_type: 'long'
-        });
-        inTrade = true;
-
-      } else if (canReenter) {
-        // Re-entry: Price closes above 21 MA after exit
-        const confidence = Math.min(0.8, Math.abs(currentPrice - ma21Value) / ma21Value * 10);
-        currentTrailingStop = currentPrice - (atrValue * this.atrMultiplierLong);
-        highestPriceSinceEntry = currentPrice;
-        reentryCount++;
-
-        signals.push({
-          date,
-          signal_type: 'BUY',
-          price: currentPrice,
-          ma_21: ma21Value,
-          ma_50: ma50Value,
-          reasoning: `Re-entry #${reentryCount}: Price ${currentPrice.toFixed(2)} closed above 21 ${this.maType.toUpperCase()} ${ma21Value.toFixed(2)} (trend confirmed: 21 MA > 50 MA)`,
-          confidence,
-          atr: atrValue,
-          trailing_stop: currentTrailingStop,
-          position_type: 'long'
-        });
-        inTrade = true;
-      }
-
-      // EXIT LOGIC (only if in trade)
+      // EXIT LOGIC (only if in trade) - MUST CHECK FIRST
+      // Exit before entry, so a trade can be closed and a new opposite trade opened on the same day
       if (inTrade) {
         // Update highest price since entry
         if (highestPriceSinceEntry === null || currentPrice > highestPriceSinceEntry) {
@@ -350,21 +323,27 @@ export class MATradingEngine {
           currentTrailingStop = highestPriceSinceEntry - (atrValue * this.atrMultiplierLong);
         }
 
-        // Check for SELL signals
+        // Check for SELL signals - all three exit conditions
         let sellTriggered = false;
         let sellReason = '';
 
+        // Exit 1: Price closes below fast MA
         if (currentPrice < ma21Value) {
           // Check if this is a new signal
           if (i > 0 && data[i - 1].close >= ma21[i - 1]) {
             sellTriggered = true;
             sellReason = `Price ${currentPrice.toFixed(2)} closed below 21 ${this.maType.toUpperCase()} ${ma21Value.toFixed(2)}`;
           }
-        } else if (currentTrailingStop !== null && currentPrice < currentTrailingStop) {
+        }
+        
+        // Exit 2: Price closes below trailing stop
+        if (!sellTriggered && currentTrailingStop !== null && currentPrice < currentTrailingStop) {
           sellTriggered = true;
           sellReason = `Price ${currentPrice.toFixed(2)} hit trailing stop ${currentTrailingStop.toFixed(2)}`;
-        } else if (currentPrice < ma50Value) {
-          // Major trend break
+        }
+        
+        // Exit 3: Price closes below slow MA (major trend break)
+        if (!sellTriggered && currentPrice < ma50Value) {
           sellTriggered = true;
           sellReason = `Major trend break: Price ${currentPrice.toFixed(2)} closed below 50 ${this.maType.toUpperCase()} ${ma50Value.toFixed(2)}`;
         }
@@ -389,6 +368,53 @@ export class MATradingEngine {
           highestPriceSinceEntry = null;
         }
       }
+
+      // ENTRY LOGIC (only if NOT in trade) - Checked AFTER exit to allow same-day entry after exit
+      if (!inTrade) {
+        if (isNewTrend) {
+          // Primary entry: Price closes above 50 MA
+          const confidence = Math.min(0.9, Math.abs(currentPrice - ma50Value) / ma50Value * 10);
+          currentTrailingStop = currentPrice - (atrValue * this.atrMultiplierLong);
+          highestPriceSinceEntry = currentPrice;
+          trendStartDate = date;
+          reentryCount = 0;
+
+          signals.push({
+            date,
+            signal_type: 'BUY',
+            price: currentPrice,
+            ma_21: ma21Value,
+            ma_50: ma50Value,
+            reasoning: `Primary entry: Price ${currentPrice.toFixed(2)} closed above 50 ${this.maType.toUpperCase()} ${ma50Value.toFixed(2)}`,
+            confidence,
+            atr: atrValue,
+            trailing_stop: currentTrailingStop,
+            position_type: 'long'
+          });
+          inTrade = true;
+
+        } else if (canReenter) {
+          // Re-entry: Price closes above 21 MA after exit
+          const confidence = Math.min(0.8, Math.abs(currentPrice - ma21Value) / ma21Value * 10);
+          currentTrailingStop = currentPrice - (atrValue * this.atrMultiplierLong);
+          highestPriceSinceEntry = currentPrice;
+          reentryCount++;
+
+          signals.push({
+            date,
+            signal_type: 'BUY',
+            price: currentPrice,
+            ma_21: ma21Value,
+            ma_50: ma50Value,
+            reasoning: `Re-entry #${reentryCount}: Price ${currentPrice.toFixed(2)} closed above 21 ${this.maType.toUpperCase()} ${ma21Value.toFixed(2)} (trend confirmed: 21 MA > 50 MA)`,
+            confidence,
+            atr: atrValue,
+            trailing_stop: currentTrailingStop,
+            position_type: 'long'
+          });
+          inTrade = true;
+        }
+      }
     }
 
     return signals;
@@ -405,6 +431,7 @@ export class MATradingEngine {
     let lastExitDate: Date | null = null;
     let reentryCount = 0;
     let trendStartDate: Date | null = null;
+    let wasAboveSlowMA = false; // Track if price was above slow MA at start (inverted for shorts)
 
     const startIndex = Math.max(this.ma50Period, this.atrPeriod);
 
@@ -417,6 +444,22 @@ export class MATradingEngine {
 
       // Skip if indicators are not calculated yet
       if (isNaN(ma21Value) || isNaN(ma50Value) || isNaN(atrValue)) {
+        continue;
+      }
+
+      // Entry Condition: Price must be above slow MA at starting point (inverted for shorts)
+      if (i === startIndex) {
+        // First bar, check if price is above slow MA
+        if (currentPrice > ma50Value) {
+          wasAboveSlowMA = true; // Track that we started above slow MA
+        }
+      } else if (!wasAboveSlowMA && currentPrice > ma50Value) {
+        // Find when price first goes above slow MA
+        wasAboveSlowMA = true;
+      }
+
+      // Can't enter if we haven't seen price above slow MA yet
+      if (!wasAboveSlowMA) {
         continue;
       }
 
@@ -434,52 +477,8 @@ export class MATradingEngine {
         i > 0 &&
         data[i - 1].close >= ma21[i - 1]);
 
-      // ENTRY LOGIC
-      if (isNewDowntrend) {
-        // Primary short entry: Price closes below 50 MA
-        const confidence = Math.min(0.9, Math.abs(currentPrice - ma50Value) / ma50Value * 10);
-        currentTrailingStop = currentPrice + (atrValue * this.atrMultiplierShort);
-        lowestPriceSinceEntry = currentPrice;
-        trendStartDate = date;
-        reentryCount = 0;
-
-        signals.push({
-          date,
-          signal_type: 'SELL_SHORT',
-          price: currentPrice,
-          ma_21: ma21Value,
-          ma_50: ma50Value,
-          reasoning: `Primary short entry: Price ${currentPrice.toFixed(2)} closed below 50 ${this.maType.toUpperCase()} ${ma50Value.toFixed(2)}`,
-          confidence,
-          atr: atrValue,
-          trailing_stop: currentTrailingStop,
-          position_type: 'short'
-        });
-        inTrade = true;
-
-      } else if (canReenterShort) {
-        // Re-entry: Price closes below 21 MA after exit
-        const confidence = Math.min(0.8, Math.abs(currentPrice - ma21Value) / ma21Value * 10);
-        currentTrailingStop = currentPrice + (atrValue * this.atrMultiplierShort);
-        lowestPriceSinceEntry = currentPrice;
-        reentryCount++;
-
-        signals.push({
-          date,
-          signal_type: 'SELL_SHORT',
-          price: currentPrice,
-          ma_21: ma21Value,
-          ma_50: ma50Value,
-          reasoning: `Short re-entry #${reentryCount}: Price ${currentPrice.toFixed(2)} closed below 21 ${this.maType.toUpperCase()} ${ma21Value.toFixed(2)} (downtrend confirmed: 21 MA < 50 MA)`,
-          confidence,
-          atr: atrValue,
-          trailing_stop: currentTrailingStop,
-          position_type: 'short'
-        });
-        inTrade = true;
-      }
-
-      // EXIT LOGIC (only if in short trade)
+      // EXIT LOGIC for shorts - MUST CHECK FIRST (only if in short trade)
+      // Exit before entry, so a trade can be closed and a new opposite trade opened on the same day
       if (inTrade) {
         // Update lowest price since entry (for short, we track lows not highs)
         if (lowestPriceSinceEntry === null || currentPrice < lowestPriceSinceEntry) {
@@ -487,21 +486,27 @@ export class MATradingEngine {
           currentTrailingStop = lowestPriceSinceEntry + (atrValue * this.atrMultiplierShort);
         }
 
-        // Check for BUY TO COVER signals
+        // Check for BUY TO COVER signals - all three exit conditions
         let coverTriggered = false;
         let coverReason = '';
 
+        // Exit 1: Price closes above fast MA
         if (currentPrice > ma21Value) {
           // Check if this is a new signal (bounce above fast MA)
           if (i > 0 && data[i - 1].close <= ma21[i - 1]) {
             coverTriggered = true;
             coverReason = `Price ${currentPrice.toFixed(2)} closed above 21 ${this.maType.toUpperCase()} ${ma21Value.toFixed(2)}`;
           }
-        } else if (currentTrailingStop !== null && currentPrice > currentTrailingStop) {
+        }
+        
+        // Exit 2: Price closes above trailing stop
+        if (!coverTriggered && currentTrailingStop !== null && currentPrice > currentTrailingStop) {
           coverTriggered = true;
           coverReason = `Price ${currentPrice.toFixed(2)} hit trailing stop ${currentTrailingStop.toFixed(2)}`;
-        } else if (currentPrice > ma50Value) {
-          // Major trend reversal
+        }
+        
+        // Exit 3: Price closes above slow MA (major trend reversal)
+        if (!coverTriggered && currentPrice > ma50Value) {
           coverTriggered = true;
           coverReason = `Major trend reversal: Price ${currentPrice.toFixed(2)} closed above 50 ${this.maType.toUpperCase()} ${ma50Value.toFixed(2)}`;
         }
@@ -524,6 +529,53 @@ export class MATradingEngine {
           lastExitDate = date;
           currentTrailingStop = null;
           lowestPriceSinceEntry = null;
+        }
+      }
+
+      // ENTRY LOGIC for shorts (only if NOT in trade) - Checked AFTER exit to allow same-day entry after exit
+      if (!inTrade) {
+        if (isNewDowntrend) {
+          // Primary short entry: Price closes below 50 MA
+          const confidence = Math.min(0.9, Math.abs(currentPrice - ma50Value) / ma50Value * 10);
+          currentTrailingStop = currentPrice + (atrValue * this.atrMultiplierShort);
+          lowestPriceSinceEntry = currentPrice;
+          trendStartDate = date;
+          reentryCount = 0;
+
+          signals.push({
+            date,
+            signal_type: 'SELL_SHORT',
+            price: currentPrice,
+            ma_21: ma21Value,
+            ma_50: ma50Value,
+            reasoning: `Primary short entry: Price ${currentPrice.toFixed(2)} closed below 50 ${this.maType.toUpperCase()} ${ma50Value.toFixed(2)}`,
+            confidence,
+            atr: atrValue,
+            trailing_stop: currentTrailingStop,
+            position_type: 'short'
+          });
+          inTrade = true;
+
+        } else if (canReenterShort) {
+          // Re-entry: Price closes below 21 MA after exit
+          const confidence = Math.min(0.8, Math.abs(currentPrice - ma21Value) / ma21Value * 10);
+          currentTrailingStop = currentPrice + (atrValue * this.atrMultiplierShort);
+          lowestPriceSinceEntry = currentPrice;
+          reentryCount++;
+
+          signals.push({
+            date,
+            signal_type: 'SELL_SHORT',
+            price: currentPrice,
+            ma_21: ma21Value,
+            ma_50: ma50Value,
+            reasoning: `Short re-entry #${reentryCount}: Price ${currentPrice.toFixed(2)} closed below 21 ${this.maType.toUpperCase()} ${ma21Value.toFixed(2)} (downtrend confirmed: 21 MA < 50 MA)`,
+            confidence,
+            atr: atrValue,
+            trailing_stop: currentTrailingStop,
+            position_type: 'short'
+          });
+          inTrade = true;
         }
       }
     }

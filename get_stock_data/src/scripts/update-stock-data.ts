@@ -9,7 +9,6 @@ import { createObjectCsvWriter } from 'csv-writer';
 import fs from 'fs';
 import path from 'path';
 
-const SYMBOLS_FILE = 'stock_symbols.txt';
 const CSV_DIR = 'csv_files';
 
 async function fetchLatestData(symbol: string, startDate: Date): Promise<StockData[]> {
@@ -72,23 +71,39 @@ async function appendToCSV(symbol: string, data: StockData[]): Promise<void> {
   console.log(`Appended ${data.length} records to CSV for ${symbol}`);
 }
 
+async function cleanupOldData(db: DatabaseService): Promise<void> {
+  try {
+    console.log('🧹 Cleaning up data older than 3 years...');
+    
+    const [result] = await db.execute(
+      'DELETE FROM daily_stock_data WHERE date < DATE_SUB(CURDATE(), INTERVAL 3 YEAR)',
+      []
+    );
+    
+    const deletedRows = (result as any).affectedRows;
+    console.log(`✅ Cleaned up ${deletedRows} old records`);
+    
+  } catch (error) {
+    console.error('Error cleaning up old data:', error);
+  }
+}
+
 async function main() {
   console.log('🔄 Starting daily data update...');
   
   const db = new DatabaseService();
   
   try {
-    // Read symbols from file
-    if (!fs.existsSync(SYMBOLS_FILE)) {
-      console.error(`Symbols file ${SYMBOLS_FILE} not found!`);
+    // Get all symbols from database
+    console.log('📊 Loading symbols from database...');
+    const symbols = await db.getAllSymbols();
+    
+    if (symbols.length === 0) {
+      console.error('❌ No symbols found in database!');
+      console.error('Please run the SQL script to populate stock_symbols table first.');
       process.exit(1);
     }
-
-    const symbols = fs.readFileSync(SYMBOLS_FILE, 'utf8')
-      .split('\n')
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
-
+    
     console.log(`Found ${symbols.length} symbols to update`);
 
     let successCount = 0;
@@ -142,6 +157,9 @@ async function main() {
     console.log(`📈 Total new records: ${totalNewRecords}`);
     console.log(`❌ Failed: ${errorCount} symbols`);
     console.log(`📁 Update files saved in: ${CSV_DIR}/`);
+
+    // Clean up old data (older than 3 years)
+    await cleanupOldData(db);
 
   } catch (error) {
     console.error('Fatal error:', error);

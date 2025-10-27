@@ -20,16 +20,16 @@ export class LoginComponent implements OnInit {
     private snackBar: MatSnackBar
   ) {
     this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(8)]]
+      email: ['kyzereye@gmail.com', [Validators.required, Validators.email]],
+      password: ['1qazxsw2!QAZ', [Validators.required, Validators.minLength(8)]]
     });
   }
 
   ngOnInit(): void {
     // Reset form on init
     this.loginForm.reset({
-      email: '',
-      password: ''
+      email: 'kyzereye@gmail.com',
+      password: '1qazxsw2!QAZ'
     });
     
     // Check if already authenticated

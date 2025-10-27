@@ -266,6 +266,22 @@ export class ApiService {
     return this.http.delete<{ success: boolean; favorites: string[] }>(`${this.API_URL}/auth/favorites/${symbol}`);
   }
 
+  // Alerts Methods
+  getAlerts(period: string = '3days'): Observable<any> {
+    const params = new HttpParams().set('period', period);
+    return this.http.get(`${this.API_URL}/alerts`, { params });
+  }
+
+  getAlertsForSymbol(symbol: string): Observable<any> {
+    const params = new HttpParams().set('symbol', symbol);
+    return this.http.get(`${this.API_URL}/alerts/symbol`, { params });
+  }
+
+  getSignalStats(period: string = '3days'): Observable<any> {
+    const params = new HttpParams().set('period', period);
+    return this.http.get(`${this.API_URL}/alerts/stats`, { params });
+  }
+
   // User Trades Methods
   getUserTrades(status?: string): Observable<any> {
     const params = status ? new HttpParams().set('status', status) : new HttpParams();

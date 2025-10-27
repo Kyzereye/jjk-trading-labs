@@ -4,6 +4,9 @@ import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TradeTrackerComponent } from '../trade-tracker/trade-tracker.component';
+import { FormControl } from '@angular/forms';
+import { Observable } from 'rxjs';
+import { SymbolAutocompleteService } from '../../services/symbol-autocomplete.service';
 
 interface FavoriteStock {
   symbol: string;
@@ -26,6 +29,20 @@ interface RecentAnalysis {
   total_return: number;
   win_rate: number;
   total_trades: number;
+}
+
+interface TradingAlert {
+  id: number;
+  symbol: string;
+  signalType: 'entry' | 'exit' | 'mean_reversion';
+  signalDirection: 'long' | 'short';
+  price: number;
+  ma21Value?: number;
+  ma50Value?: number;
+  deviationPercent?: number;
+  signalDate: string;
+  signalTime?: string;
+  createdAt: string;
 }
 
 interface DashboardStats {
@@ -63,8 +80,117 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   
   // Panel expansion state
   tradeTrackerPanelExpanded = false;
+  
+  // Expose Math to template
+  Math = Math;
+
+  // Alerts properties
+  alerts: TradingAlert[] = [];
+  alertsLoading = false;
+  selectedPeriod = '3days';
   shouldExpandOnInit = false;
   private _initialized = false;
+  
+  // Symbol alerts cache
+  symbolAlertsCache: { [symbol: string]: TradingAlert[] } = {};
+  
+  // Filters
+  selectedDirection: 'all' | 'long' | 'short' = 'all';
+  selectedType: 'all' | 'entry' | 'exit' | 'mean_reversion' = 'all';
+  selectedDay: string = 'all';
+  symbolSearchControl = new FormControl('');
+  filteredSymbols$!: Observable<string[]>;
+  showOnlyFavorites = false;
+  showFilters = false;
+  
+  // Pagination
+  currentPage = 0;
+  pageSize = 10;
+  pageSizeOptions = [5, 10, 25, 50, 100];
+  
+  // Expandable alerts
+  expandedAlertId: number | null = null;
+  
+  // Get available days from alerts
+  get availableDays(): string[] {
+    const uniqueDays = new Set<string>();
+    this.alerts.forEach(alert => {
+      uniqueDays.add(alert.signalDate);
+    });
+    return Array.from(uniqueDays).sort((a, b) => b.localeCompare(a)); // Sort newest first
+  }
+  
+  // Computed filtered alerts
+  get filteredAlerts(): TradingAlert[] {
+    const symbolFilter = this.symbolSearchControl.value?.toUpperCase() || '';
+    const favoriteSymbols = this.favoriteStocks.map(stock => stock.symbol.toUpperCase());
+    
+    return this.alerts.filter(alert => {
+      const directionMatch = this.selectedDirection === 'all' || alert.signalDirection === this.selectedDirection;
+      const typeMatch = this.selectedType === 'all' || alert.signalType === this.selectedType;
+      const dayMatch = this.selectedDay === 'all' || alert.signalDate === this.selectedDay;
+      const symbolMatch = !symbolFilter || alert.symbol.toUpperCase().includes(symbolFilter);
+      const favoriteMatch = !this.showOnlyFavorites || favoriteSymbols.includes(alert.symbol.toUpperCase());
+      return directionMatch && typeMatch && dayMatch && symbolMatch && favoriteMatch;
+    });
+  }
+  
+  // Paginated alerts (with page validation)
+  get paginatedAlerts(): TradingAlert[] {
+    // Reset to first page if current page is out of bounds
+    if (this.currentPage >= Math.ceil(this.filteredAlerts.length / this.pageSize) && this.currentPage > 0) {
+      this.currentPage = 0;
+    }
+    const startIndex = this.currentPage * this.pageSize;
+    return this.filteredAlerts.slice(startIndex, startIndex + this.pageSize);
+  }
+  
+  // Total number of pages
+  get totalPages(): number {
+    return Math.ceil(this.filteredAlerts.length / this.pageSize);
+  }
+  
+  // Group alerts by date for divider display
+  get groupedAlertsByDate(): { date: string, alerts: TradingAlert[] }[] {
+    const grouped = new Map<string, TradingAlert[]>();
+    
+    for (const alert of this.paginatedAlerts) {
+      const dateKey = alert.signalDate;
+      if (!grouped.has(dateKey)) {
+        grouped.set(dateKey, []);
+      }
+      grouped.get(dateKey)!.push(alert);
+    }
+    
+    return Array.from(grouped.entries()).map(([date, alerts]) => ({
+      date,
+      alerts
+    })).sort((a, b) => b.date.localeCompare(a.date)); // Sort newest first
+  }
+  
+  // Pagination methods
+  nextPage(): void {
+    if (this.currentPage < this.totalPages - 1) {
+      this.currentPage++;
+    }
+  }
+  
+  previousPage(): void {
+    if (this.currentPage > 0) {
+      this.currentPage--;
+    }
+  }
+  
+  goToPage(page: number): void {
+    if (page >= 0 && page < this.totalPages) {
+      this.currentPage = page;
+    }
+  }
+  
+  onPageSizeChange(newSize: any): void {
+    this.pageSize = parseInt(newSize);
+    this.currentPage = 0; // Reset to first page when changing page size
+  }
 
   constructor(
     private authService: AuthService,
@@ -73,12 +199,16 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     private snackBar: MatSnackBar,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private symbolAutocompleteService: SymbolAutocompleteService
   ) {}
 
   ngOnInit(): void {
     this.user = this.authService.getCurrentUser();
     this.loadDashboardData();
+    
+    // Setup symbol autocomplete
+    this.filteredSymbols$ = this.symbolAutocompleteService.setupAutocomplete(this.symbolSearchControl);
     
     // Check for symbol query parameter
     this.route.queryParams.subscribe(params => {
@@ -111,6 +241,9 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     
     // Load favorite stocks with default list
     this.loadFavoriteStocks();
+    
+    // Load trading alerts
+    this.loadAlerts();
     
     // Load recent analyses (will implement backend endpoint)
     // this.loadRecentAnalyses();
@@ -278,6 +411,84 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   getTradeCount(): number {
     if (!this.tradeTrackerComponent) return 0;
     return this.tradeTrackerComponent.openTrades.length + this.tradeTrackerComponent.closedTrades.length;
+  }
+
+  loadAlerts(): void {
+    this.alertsLoading = true;
+    
+    this.apiService.getAlerts(this.selectedPeriod).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.alerts = response.data || [];
+        } else {
+          this.alerts = [];
+        }
+        this.alertsLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading alerts:', error);
+        this.alerts = [];
+        this.alertsLoading = false;
+        this.snackBar.open('Failed to load alerts', 'Close', { duration: 3000 });
+      }
+    });
+  }
+
+  onPeriodChange(): void {
+    this.loadAlerts();
+  }
+  
+  resetFilters(): void {
+    this.selectedDirection = 'all';
+    this.selectedType = 'all';
+    this.selectedDay = 'all';
+    this.showOnlyFavorites = false;
+    this.symbolSearchControl.setValue('');
+    this.currentPage = 0;
+    
+    // Manually trigger change detection to update the view
+    this.cdr.markForCheck();
+  }
+  
+  toggleFavoritesFilter(): void {
+    this.showOnlyFavorites = !this.showOnlyFavorites;
+    this.currentPage = 0; // Reset to first page when toggling
+  }
+  
+  toggleFilters(): void {
+    this.showFilters = !this.showFilters;
+  }
+  
+  onAlertClick(alert: TradingAlert): void {
+    if (this.expandedAlertId === alert.id) {
+      this.expandedAlertId = null;
+    } else {
+      this.expandedAlertId = alert.id;
+      
+      // Fetch all alerts for this symbol if not in cache
+      if (!this.symbolAlertsCache[alert.symbol]) {
+        this.apiService.getAlertsForSymbol(alert.symbol).subscribe({
+          next: (response) => {
+            if (response.success && response.data) {
+              this.symbolAlertsCache[alert.symbol] = response.data;
+            }
+          },
+          error: (error) => {
+            console.error('Error fetching alerts for symbol:', error);
+            this.symbolAlertsCache[alert.symbol] = [];
+          }
+        });
+      }
+    }
+  }
+  
+  isExpanded(alertId: number): boolean {
+    return this.expandedAlertId === alertId;
+  }
+  
+  getAlertsForSymbol(symbol: string): TradingAlert[] {
+    // Return cached alerts for this symbol, or empty array if not loaded yet
+    return this.symbolAlertsCache[symbol] || [];
   }
 }
 
