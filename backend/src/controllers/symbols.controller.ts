@@ -18,20 +18,33 @@ export const getSymbols = async (req: Request, res: Response): Promise<void> => 
     const offset = (pageNum - 1) * limitNum;
 
     let countQuery = 'SELECT COUNT(*) as total FROM stock_symbols';
-    let dataQuery = 'SELECT id, symbol, company_name FROM stock_symbols';
+    let dataQuery = `
+      SELECT 
+        ss.id, 
+        ss.symbol, 
+        ss.company_name,
+        MIN(dsd.date) as earliest_date,
+        MAX(dsd.date) as latest_date,
+        COUNT(DISTINCT dsd.date) as data_points
+      FROM stock_symbols ss
+      LEFT JOIN daily_stock_data dsd ON ss.id = dsd.symbol_id
+    `;
     const params: any[] = [];
 
     // Add search filter if provided
     if (search) {
-      const searchCondition = ' WHERE symbol LIKE ? OR company_name LIKE ?';
+      const searchCondition = ' WHERE ss.symbol LIKE ? OR ss.company_name LIKE ?';
       countQuery += searchCondition;
       dataQuery += searchCondition;
       const searchPattern = `%${search}%`;
       params.push(searchPattern, searchPattern);
     }
 
+    // Group by for the aggregate functions
+    dataQuery += ` GROUP BY ss.id, ss.symbol, ss.company_name`;
+    
     // Add sorting and pagination (use string interpolation for LIMIT/OFFSET)
-    dataQuery += ` ORDER BY symbol ASC LIMIT ${limitNum} OFFSET ${offset}`;
+    dataQuery += ` ORDER BY ss.symbol ASC LIMIT ${limitNum} OFFSET ${offset}`;
 
     // Execute queries
     const [countRows] = await db.execute(countQuery, params) as any[];

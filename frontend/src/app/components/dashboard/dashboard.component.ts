@@ -94,13 +94,19 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   // Symbol alerts cache
   symbolAlertsCache: { [symbol: string]: TradingAlert[] } = {};
   
+  // Alert tabs
+  selectedAlertTab: 'favorites' | 'discovery' | 'all' = 'favorites';
+  discoveryStocks: string[] = []; // Symbols from discovery API
+  discoveryLoading = false;
+  
   // Filters
   selectedDirection: 'all' | 'long' | 'short' = 'all';
   selectedType: 'all' | 'entry' | 'exit' | 'mean_reversion' = 'all';
   selectedDay: string = 'all';
+  minPrice: number | null = null;
+  maxPrice: number | null = null;
   symbolSearchControl = new FormControl('');
   filteredSymbols$!: Observable<string[]>;
-  showOnlyFavorites = false;
   showFilters = false;
   
   // Pagination
@@ -120,19 +126,77 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     return Array.from(uniqueDays).sort((a, b) => b.localeCompare(a)); // Sort newest first
   }
   
-  // Computed filtered alerts
+  // Get discovery alerts - stocks from API based on performance metrics
+  get discoveryAlerts(): TradingAlert[] {
+    if (this.discoveryStocks.length === 0) {
+      return [];
+    }
+    
+    const discoverySymbolsSet = new Set(this.discoveryStocks.map(s => s.toUpperCase()));
+    
+    // Return alerts for discovery stocks only
+    return this.alerts.filter(alert => 
+      discoverySymbolsSet.has(alert.symbol.toUpperCase())
+    );
+  }
+  
+  // Computed filtered alerts based on selected tab
   get filteredAlerts(): TradingAlert[] {
     const symbolFilter = this.symbolSearchControl.value?.toUpperCase() || '';
     const favoriteSymbols = this.favoriteStocks.map(stock => stock.symbol.toUpperCase());
     
-    return this.alerts.filter(alert => {
+    // Start with alerts based on selected tab
+    let baseAlerts: TradingAlert[];
+    switch (this.selectedAlertTab) {
+      case 'favorites':
+        baseAlerts = this.alerts.filter(alert => 
+          favoriteSymbols.includes(alert.symbol.toUpperCase())
+        );
+        break;
+      case 'discovery':
+        baseAlerts = this.discoveryAlerts;
+        break;
+      case 'all':
+      default:
+        baseAlerts = this.alerts;
+        break;
+    }
+    
+    // Apply additional filters
+    return baseAlerts.filter(alert => {
       const directionMatch = this.selectedDirection === 'all' || alert.signalDirection === this.selectedDirection;
       const typeMatch = this.selectedType === 'all' || alert.signalType === this.selectedType;
       const dayMatch = this.selectedDay === 'all' || alert.signalDate === this.selectedDay;
       const symbolMatch = !symbolFilter || alert.symbol.toUpperCase().includes(symbolFilter);
-      const favoriteMatch = !this.showOnlyFavorites || favoriteSymbols.includes(alert.symbol.toUpperCase());
-      return directionMatch && typeMatch && dayMatch && symbolMatch && favoriteMatch;
+      const minPriceMatch = this.minPrice === null || alert.price >= this.minPrice;
+      const maxPriceMatch = this.maxPrice === null || alert.price <= this.maxPrice;
+      return directionMatch && typeMatch && dayMatch && symbolMatch && minPriceMatch && maxPriceMatch;
     });
+  }
+  
+  // Get favorites that don't have alerts in the current filtered set
+  get favoritesWithoutAlerts(): string[] {
+    if (this.selectedAlertTab !== 'favorites' || this.favoriteStocks.length === 0) {
+      return [];
+    }
+    
+    const favoriteSymbols = this.favoriteStocks.map(stock => stock.symbol.toUpperCase());
+    const alertSymbols = new Set(this.filteredAlerts.map(alert => alert.symbol.toUpperCase()));
+    
+    return favoriteSymbols.filter(symbol => !alertSymbols.has(symbol));
+  }
+  
+  // Get count of favorites with alerts
+  get favoriteAlertsCount(): { showing: number, total: number } {
+    if (this.selectedAlertTab !== 'favorites' || this.favoriteStocks.length === 0) {
+      return { showing: 0, total: 0 };
+    }
+    
+    const favoriteSymbols = this.favoriteStocks.map(stock => stock.symbol.toUpperCase());
+    const alertSymbols = new Set(this.filteredAlerts.map(alert => alert.symbol.toUpperCase()));
+    const showing = favoriteSymbols.filter(symbol => alertSymbols.has(symbol)).length;
+    
+    return { showing, total: this.favoriteStocks.length };
   }
   
   // Paginated alerts (with page validation)
@@ -442,7 +506,8 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     this.selectedDirection = 'all';
     this.selectedType = 'all';
     this.selectedDay = 'all';
-    this.showOnlyFavorites = false;
+    this.minPrice = null;
+    this.maxPrice = null;
     this.symbolSearchControl.setValue('');
     this.currentPage = 0;
     
@@ -450,9 +515,36 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     this.cdr.markForCheck();
   }
   
-  toggleFavoritesFilter(): void {
-    this.showOnlyFavorites = !this.showOnlyFavorites;
-    this.currentPage = 0; // Reset to first page when toggling
+  selectAlertTab(tab: 'favorites' | 'discovery' | 'all'): void {
+    this.selectedAlertTab = tab;
+    this.currentPage = 0; // Reset to first page when changing tabs
+    
+    // Always reload discovery stocks when discovery tab is selected (in case settings changed)
+    if (tab === 'discovery') {
+      this.loadDiscoveryStocks();
+    }
+    
+    this.cdr.detectChanges();
+  }
+  
+  loadDiscoveryStocks(): void {
+    this.discoveryLoading = true;
+    
+    this.apiService.getDiscoveryStocks().subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          this.discoveryStocks = response.data.map((stock: any) => stock.symbol);
+        } else {
+          this.discoveryStocks = [];
+        }
+        this.discoveryLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading discovery stocks:', error);
+        this.discoveryStocks = [];
+        this.discoveryLoading = false;
+      }
+    });
   }
   
   toggleFilters(): void {

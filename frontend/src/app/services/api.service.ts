@@ -282,6 +282,21 @@ export class ApiService {
     return this.http.get(`${this.API_URL}/alerts/stats`, { params });
   }
 
+  // Discovery Methods
+  getDiscoveryStocks(): Observable<any> {
+    return this.http.get(`${this.API_URL}/discovery/stocks`);
+  }
+
+  updateDiscoveryPreferences(preferences: {
+    minWinRate?: number;
+    minReturn?: number;
+    minSharpe?: number;
+    minTrades?: number;
+    maxStocks?: number;
+  }): Observable<any> {
+    return this.http.put(`${this.API_URL}/discovery/preferences`, preferences);
+  }
+
   // User Trades Methods
   getUserTrades(status?: string): Observable<any> {
     const params = status ? new HttpParams().set('status', status) : new HttpParams();

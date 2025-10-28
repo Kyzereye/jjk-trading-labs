@@ -106,18 +106,44 @@
       </mat-expansion-panel-header>
       
       <div class="panel-content">
-        <!-- Action Bar: Favorite Button + Filter Toggle -->
-        <div class="action-bar" *ngIf="!alertsLoading && alerts.length > 0">
-          <button mat-raised-button 
-                  class="action-btn" 
-                  (click)="toggleFavoritesFilter()">
-            <mat-icon class="btn-icon">star</mat-icon>
-            <span class="btn-text">{{ (showOnlyFavorites ? 'Show All Alerts' : 'Show Favorite Alerts') | uppercase }}</span>
-          </button>
+        <!-- Tab Navigation -->
+        <div class="alert-tabs" *ngIf="!alertsLoading && alerts.length > 0">
+          <div class="tab-buttons">
+            <button 
+              mat-button 
+              [class.active]="selectedAlertTab === 'favorites'"
+              (click)="selectAlertTab('favorites')">
+              <mat-icon>star</mat-icon>
+              <span>Favorites</span>
+            </button>
+            <button 
+              mat-button 
+              [class.active]="selectedAlertTab === 'discovery'"
+              (click)="selectAlertTab('discovery')">
+              <mat-icon>explore</mat-icon>
+              <span>Discovery</span>
+            </button>
+            <button 
+              mat-button 
+              [class.active]="selectedAlertTab === 'all'"
+              (click)="selectAlertTab('all')">
+              <mat-icon>view_list</mat-icon>
+              <span>All Alerts</span>
+            </button>
+          </div>
           
           <button mat-icon-button (click)="toggleFilters()" matTooltip="{{ showFilters ? 'Hide Filters' : 'Show Filters' }}" class="filter-toggle-btn">
             <mat-icon>{{ showFilters ? 'filter_list' : 'filter_list_off' }}</mat-icon>
           </button>
+        </div>
+        
+        <!-- Favorites Info Message -->
+        <div *ngIf="selectedAlertTab === 'favorites' && favoritesWithoutAlerts.length > 0" class="favorites-info-message">
+          <mat-icon>info</mat-icon>
+          <div class="info-content">
+            <strong>Showing {{ favoriteAlertsCount.showing }} of {{ favoriteAlertsCount.total }} favorites</strong>
+            <p>{{ favoritesWithoutAlerts.join(', ') }} {{ favoritesWithoutAlerts.length === 1 ? 'has' : 'have' }} no alerts in the selected time period.</p>
+          </div>
         </div>
         
         <!-- Filters -->
@@ -189,6 +215,32 @@
               </div>
             </div>
             
+            <div class="filter-field-group">
+              <label>Min Price</label>
+              <div class="simple-search-field price-input">
+                <span class="price-prefix">$</span>
+                <input 
+                  type="number"
+                  [(ngModel)]="minPrice"
+                  placeholder="Min"
+                  min="0"
+                  step="0.01">
+              </div>
+            </div>
+            
+            <div class="filter-field-group">
+              <label>Max Price</label>
+              <div class="simple-search-field price-input">
+                <span class="price-prefix">$</span>
+                <input 
+                  type="number"
+                  [(ngModel)]="maxPrice"
+                  placeholder="Max"
+                  min="0"
+                  step="0.01">
+              </div>
+            </div>
+            
             <button mat-icon-button class="filter-reset-btn" (click)="resetFilters()" matTooltip="Reset Filters">
               <mat-icon>refresh</mat-icon>
             </button>
@@ -220,7 +272,7 @@
           <div *ngFor="let dayGroup of groupedAlertsByDate; let last = last">
             <!-- Date header -->
             <div class="date-group-header">
-              <h3>{{ dayGroup.date | date:'EEEE, MMMM d' }}</h3>
+              <h3>Alerts for {{ dayGroup.date | date:'EEEE, MMMM d':'UTC' }}</h3>
             </div>
             
             <!-- Alerts for this day -->

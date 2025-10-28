@@ -88,6 +88,12 @@ app.get('/api/alerts', (req, res) => alertsController.getAlerts(req, res));
 app.get('/api/alerts/stats', (req, res) => alertsController.getSignalStats(req, res));
 app.get('/api/alerts/symbol', (req, res) => alertsController.getAlertsForSymbol(req, res));
 
+// Discovery routes
+import { DiscoveryController } from './controllers/discovery.controller';
+const discoveryController = new DiscoveryController();
+app.get('/api/discovery/stocks', authMiddleware, (req, res) => discoveryController.getDiscoveryStocks(req, res));
+app.put('/api/discovery/preferences', authMiddleware, (req, res) => discoveryController.updateDiscoveryPreferences(req, res));
+
 // Stock symbols management routes
 import symbolsRoutes from './routes/symbols.routes';
 app.use('/api/symbols/manage', symbolsRoutes);

@@ -46,6 +46,16 @@
         <td mat-cell *matCellDef="let symbol">{{ symbol.company_name }}</td>
       </ng-container>
 
+      <!-- Data Availability Column -->
+      <ng-container matColumnDef="data_availability">
+        <th mat-header-cell *matHeaderCellDef>Data Availability</th>
+        <td mat-cell *matCellDef="let symbol">
+          <span class="data-badge" [ngClass]="getDataAvailability(symbol).class">
+            {{ getDataAvailability(symbol).display }}
+          </span>
+        </td>
+      </ng-container>
+
       <!-- Actions Column -->
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef class="actions-header">Actions</th>

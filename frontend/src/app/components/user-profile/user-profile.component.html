@@ -157,7 +157,7 @@
                 <mat-accordion multi>
                   
                   <!-- Position Sizing Panel -->
-                  <mat-expansion-panel [expanded]="true">
+                  <mat-expansion-panel>
                     <mat-expansion-panel-header>
                       <mat-panel-title>
                         <mat-icon>pie_chart</mat-icon>
@@ -355,6 +355,101 @@
                         <span>15%</span>
                       </div>
                       <p class="slider-hint">Distance from MA to trigger mean reversion alerts</p>
+                    </div>
+                  </mat-expansion-panel>
+
+                  <!-- Discovery Settings Panel -->
+                  <mat-expansion-panel>
+                    <mat-expansion-panel-header>
+                      <mat-panel-title>
+                        <mat-icon>explore</mat-icon>
+                        Discovery Settings
+                      </mat-panel-title>
+                      <mat-panel-description>
+                        Configure which stocks appear in Discovery tab
+                      </mat-panel-description>
+                    </mat-expansion-panel-header>
+
+                    <!-- Min Win Rate -->
+                    <div class="slider-section">
+                      <h3>Minimum Win Rate: {{ preferencesForm.get('discovery_min_win_rate')?.value }}%</h3>
+                      <mat-slider min="0" max="100" step="5">
+                        <input matSliderThumb formControlName="discovery_min_win_rate">
+                      </mat-slider>
+                      <div class="slider-marks">
+                        <span>0%</span>
+                        <span>50%</span>
+                        <span>100%</span>
+                      </div>
+                      <p class="slider-hint">Only show stocks with this win rate or higher</p>
+                    </div>
+
+                    <mat-divider class="panel-divider"></mat-divider>
+
+                    <!-- Min Return -->
+                    <div class="slider-section">
+                      <h3>Minimum Total Return: {{ preferencesForm.get('discovery_min_return')?.value }}%</h3>
+                      <mat-slider min="0" max="50" step="1">
+                        <input matSliderThumb formControlName="discovery_min_return">
+                      </mat-slider>
+                      <div class="slider-marks">
+                        <span>0%</span>
+                        <span>10%</span>
+                        <span>25%</span>
+                        <span>50%</span>
+                      </div>
+                      <p class="slider-hint">Minimum total return for backtested strategy</p>
+                    </div>
+
+                    <mat-divider class="panel-divider"></mat-divider>
+
+                    <!-- Min Sharpe Ratio -->
+                    <div class="slider-section">
+                      <h3>Minimum Sharpe Ratio: {{ preferencesForm.get('discovery_min_sharpe')?.value | number:'1.2-2' }}</h3>
+                      <mat-slider min="0" max="2.0" step="0.05">
+                        <input matSliderThumb formControlName="discovery_min_sharpe">
+                      </mat-slider>
+                      <div class="slider-marks">
+                        <span>0.0</span>
+                        <span>0.5</span>
+                        <span>1.0</span>
+                        <span>2.0</span>
+                      </div>
+                      <p class="slider-hint">Risk-adjusted return quality (higher = better)</p>
+                    </div>
+
+                    <mat-divider class="panel-divider"></mat-divider>
+
+                    <!-- Min Trades -->
+                    <div class="slider-section">
+                      <h3>Minimum Number of Trades: {{ preferencesForm.get('discovery_min_trades')?.value }}</h3>
+                      <mat-slider min="1" max="20" step="1">
+                        <input matSliderThumb formControlName="discovery_min_trades">
+                      </mat-slider>
+                      <div class="slider-marks">
+                        <span>1</span>
+                        <span>5</span>
+                        <span>10</span>
+                        <span>20</span>
+                      </div>
+                      <p class="slider-hint">Statistical significance threshold</p>
+                    </div>
+
+                    <mat-divider class="panel-divider"></mat-divider>
+
+                    <!-- Max Stocks to Show -->
+                    <div class="slider-section">
+                      <h3>Maximum Stocks to Show: {{ preferencesForm.get('discovery_max_stocks')?.value }}</h3>
+                      <mat-slider min="5" max="50" step="5">
+                        <input matSliderThumb formControlName="discovery_max_stocks">
+                      </mat-slider>
+                      <div class="slider-marks">
+                        <span>5</span>
+                        <span>15</span>
+                        <span>30</span>
+                        <span>50</span>
+                      </div>
+                      <p class="slider-hint">Limit number of discovery opportunities shown</p>
                     </div>
                   </mat-expansion-panel>
 

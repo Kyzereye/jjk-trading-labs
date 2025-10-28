@@ -120,6 +120,36 @@
         letter-spacing: 0.5px;
       }
 
+      .data-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-weight: 500;
+        font-size: 12px;
+        letter-spacing: 0.3px;
+        
+        &.full-data {
+          background-color: #6bd098;
+          color: #ffffff;
+        }
+        
+        &.partial-data {
+          background-color: #fbc658;
+          color: #ffffff;
+        }
+        
+        &.low-data {
+          background-color: #ef8157;
+          color: #ffffff;
+        }
+        
+        &.no-data {
+          background-color: #e3e3e3;
+          color: #9a9a9a;
+          font-style: italic;
+        }
+      }
+
       .no-data {
         text-align: center;
         padding: 60px 24px !important;

@@ -139,7 +139,7 @@ async function main() {
           
           for (const period of TIME_PERIODS) {
             for (const strategyMode of STRATEGY_MODES) {
-              console.log(`     ⏱  Analyzing ${period.label} - ${strategyMode.toUpperCase()}...`);
+              // console.log(`     ⏱  Analyzing ${period.label} - ${strategyMode.toUpperCase()}...`);
               
               const analysisParams = {
                 ...period.params,

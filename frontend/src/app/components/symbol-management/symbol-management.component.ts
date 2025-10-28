@@ -22,6 +22,9 @@ interface StockSymbol {
   id: number;
   symbol: string;
   company_name: string;
+  earliest_date?: string;
+  latest_date?: string;
+  data_points?: number;
 }
 
 interface PaginationInfo {
@@ -54,7 +57,7 @@ interface PaginationInfo {
   styleUrls: ['./symbol-management.component.scss']
 })
 export class SymbolManagementComponent implements OnInit {
-  displayedColumns: string[] = ['symbol', 'company_name', 'actions'];
+  displayedColumns: string[] = ['symbol', 'company_name', 'data_availability', 'actions'];
   symbols: StockSymbol[] = [];
   pagination: PaginationInfo = {
     page: 1,
@@ -245,5 +248,49 @@ export class SymbolManagementComponent implements OnInit {
       horizontalPosition: 'center',
       verticalPosition: 'top'
     });
+  }
+
+  /**
+   * Calculate data availability display
+   * Uses trading days (data_points) for classification, not calendar days
+   */
+  getDataAvailability(symbol: StockSymbol): { display: string; class: string } {
+    if (!symbol.earliest_date || !symbol.latest_date || !symbol.data_points || symbol.data_points === 0) {
+      return { display: 'No data', class: 'no-data' };
+    }
+
+    const tradingDays = symbol.data_points;
+    const tradingDaysPerYear = 252; // Approximate US trading days per year
+    
+    // Calculate years and months based on trading days
+    const years = Math.floor(tradingDays / tradingDaysPerYear);
+    const remainingDays = tradingDays % tradingDaysPerYear;
+    const months = Math.floor((remainingDays / tradingDaysPerYear) * 12);
+    
+    let displayText = '';
+    if (years > 0) {
+      displayText = `${years}y`;
+      if (months > 0) {
+        displayText += ` ${months}m`;
+      }
+    } else if (months > 0) {
+      displayText = `${months}m`;
+    } else {
+      displayText = `${tradingDays}d`;
+    }
+    
+    displayText += ` (${tradingDays} trading days)`;
+    
+    // Determine class based on trading days
+    // 750+ trading days = full data (approximately 3 years)
+    // 252 trading days/year × 1 year = 252 days
+    let cssClass = 'full-data'; // 750+ trading days
+    if (tradingDays < tradingDaysPerYear) {
+      cssClass = 'low-data'; // < 1 year (< 252 days)
+    } else if (tradingDays < 750) {
+      cssClass = 'partial-data'; // 1-3 years (252-749 days)
+    }
+    
+    return { display: displayText, class: cssClass };
   }
 }

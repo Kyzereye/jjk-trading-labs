@@ -118,7 +118,12 @@ export class UserProfileComponent implements OnInit {
       position_sizing_short: [3.0, [Validators.min(1), Validators.max(5)]],
       atr_multiplier_long: [2.0, [Validators.min(0.5), Validators.max(5.0)]],
       atr_multiplier_short: [1.5, [Validators.min(0.5), Validators.max(5.0)]],
-      mean_reversion_threshold: [10.0, [Validators.min(3), Validators.max(15)]]
+      mean_reversion_threshold: [10.0, [Validators.min(3), Validators.max(15)]],
+      discovery_min_win_rate: [50.0, [Validators.min(0), Validators.max(100)]],
+      discovery_min_return: [5.0, [Validators.min(0), Validators.max(100)]],
+      discovery_min_sharpe: [0.20, [Validators.min(0), Validators.max(5)]],
+      discovery_min_trades: [3, [Validators.min(1), Validators.max(100)]],
+      discovery_max_stocks: [15, [Validators.min(1), Validators.max(50)]]
     });
   }
 
@@ -253,7 +258,12 @@ export class UserProfileComponent implements OnInit {
       position_sizing_short: 3.0,
       atr_multiplier_long: 2.0,
       atr_multiplier_short: 1.5,
-      mean_reversion_threshold: 10.0
+      mean_reversion_threshold: 10.0,
+      discovery_min_win_rate: 50.0,
+      discovery_min_return: 5.0,
+      discovery_min_sharpe: 0.20,
+      discovery_min_trades: 3,
+      discovery_max_stocks: 15
     });
     
     this.message = { type: 'success', text: 'Preferences reset to defaults. Click "Save Preferences" to apply.' };
