@@ -70,9 +70,6 @@ export class PerformanceAnalyzer {
           console.log(`  ⚠️  ${errorMsg}`);
           return { success: false, error: errorMsg };
         }
-        // console.log(`  ⏱  Using last ${analysisParams.days} days of data (${dataToAnalyze.length} days available)`);
-      } else {
-        // console.log(`  ⏱  Using all ${stockData.length} days of data`);
       }
 
       const {
@@ -146,7 +143,6 @@ export class PerformanceAnalyzer {
         analysisParams
       );
 
-      // console.log(`  ✅ Performance analysis: ${totalReturnPct.toFixed(2)}% return, ${totalTrades} trades`);
       return { success: true };
 
     } catch (error) {

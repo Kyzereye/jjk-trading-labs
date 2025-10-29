@@ -84,9 +84,9 @@ app.use('/api/trades', tradesRoutes);
 // Alerts routes
 import { AlertsController } from './controllers/alerts.controller';
 const alertsController = new AlertsController();
-app.get('/api/alerts', (req, res) => alertsController.getAlerts(req, res));
-app.get('/api/alerts/stats', (req, res) => alertsController.getSignalStats(req, res));
-app.get('/api/alerts/symbol', (req, res) => alertsController.getAlertsForSymbol(req, res));
+app.get('/api/alerts', authMiddleware, (req, res) => alertsController.getAlerts(req, res));
+app.get('/api/alerts/stats', authMiddleware, (req, res) => alertsController.getSignalStats(req, res));
+app.get('/api/alerts/symbol', authMiddleware, (req, res) => alertsController.getAlertsForSymbol(req, res));
 
 // Discovery routes
 import { DiscoveryController } from './controllers/discovery.controller';

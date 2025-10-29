@@ -9,7 +9,8 @@
     "dev": "ts-node src/index.ts",
     "fetch-3year": "ts-node src/scripts/fetch-3year-data.ts",
     "update-daily": "ts-node src/scripts/update-stock-data.ts",
-    "expand-historical": "ts-node src/scripts/expand-historical-data.ts"
+    "expand-historical": "ts-node src/scripts/expand-historical-data.ts",
+    "analyze-symbol": "ts-node src/scripts/analyze-one-symbol.ts"
   },
   "dependencies": {
     "csv-writer": "^1.6.0",

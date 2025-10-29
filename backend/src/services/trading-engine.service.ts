@@ -12,7 +12,7 @@ export interface MASignal {
   reasoning: string;
   confidence: number;
   atr?: number;
-  trailing_stop?: number;
+  trailing_stop?: number | null;
   position_type?: 'long' | 'short';
 }
 
@@ -199,6 +199,84 @@ export class MATradingEngine {
   }
 
   /**
+   * Calculate ADX (Average Directional Index) for trend strength
+   * Returns values from 0-100, where higher values indicate stronger trends
+   */
+  private calculateADX(data: StockData[], period: number = 14): number[] {
+    const result: number[] = new Array(data.length).fill(NaN);
+    
+    if (data.length < period + 1) {
+      return result;
+    }
+
+    const plusDM: number[] = [];
+    const minusDM: number[] = [];
+    const trueRanges: number[] = [];
+
+    // Calculate directional movement and true range
+    for (let i = 1; i < data.length; i++) {
+      const highDiff = data[i].high - data[i - 1].high;
+      const lowDiff = data[i - 1].low - data[i].low;
+
+      // +DM and -DM
+      plusDM.push(highDiff > lowDiff && highDiff > 0 ? highDiff : 0);
+      minusDM.push(lowDiff > highDiff && lowDiff > 0 ? lowDiff : 0);
+
+      // True Range
+      const tr1 = data[i].high - data[i].low;
+      const tr2 = Math.abs(data[i].high - data[i - 1].close);
+      const tr3 = Math.abs(data[i].low - data[i - 1].close);
+      trueRanges.push(Math.max(tr1, tr2, tr3));
+    }
+
+    // Smooth +DM, -DM, and TR using EMA
+    const smoothedPlusDM = this.calculateEMA(plusDM, period);
+    const smoothedMinusDM = this.calculateEMA(minusDM, period);
+    const smoothedTR = this.calculateEMA(trueRanges, period);
+
+    // Calculate +DI and -DI
+    const plusDI: number[] = [];
+    const minusDI: number[] = [];
+    for (let i = 0; i < smoothedTR.length; i++) {
+      if (!isNaN(smoothedTR[i]) && smoothedTR[i] > 0) {
+        plusDI.push((smoothedPlusDM[i] / smoothedTR[i]) * 100);
+        minusDI.push((smoothedMinusDM[i] / smoothedTR[i]) * 100);
+      } else {
+        plusDI.push(NaN);
+        minusDI.push(NaN);
+      }
+    }
+
+    // Calculate DX
+    const dx: number[] = [];
+    for (let i = 0; i < plusDI.length; i++) {
+      if (!isNaN(plusDI[i]) && !isNaN(minusDI[i])) {
+        const diSum = plusDI[i] + minusDI[i];
+        if (diSum > 0) {
+          const diDiff = Math.abs(plusDI[i] - minusDI[i]);
+          dx.push((diDiff / diSum) * 100);
+        } else {
+          dx.push(0);
+        }
+      } else {
+        dx.push(NaN);
+      }
+    }
+
+    // Smooth DX to get ADX
+    const adx = this.calculateEMA(dx, period);
+
+    // Copy ADX values to result array (offset by 1 due to initial calculations)
+    for (let i = 0; i < adx.length; i++) {
+      if (i + 1 < result.length) {
+        result[i + 1] = adx[i];
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Run Moving Average trading analysis
    */
   async runAnalysis(data: StockData[], symbol: string): Promise<MAResults> {
@@ -213,17 +291,18 @@ export class MATradingEngine {
     const ma21 = this.calculateMA(closePrices, this.ma21Period);
     const ma50 = this.calculateMA(closePrices, this.ma50Period);
     const atr = this.calculateATR(data, this.atrPeriod);
+    const adx = this.calculateADX(data, 14);
 
     // Generate signals based on strategy mode
     let signals: MASignal[] = [];
     
     if (this.strategyMode === 'long') {
-      signals = this.generateLongSignals(data, ma21, ma50, atr);
+      signals = this.generateLongSignals(data, ma21, ma50, atr, adx);
     } else if (this.strategyMode === 'short') {
-      signals = this.generateShortSignals(data, ma21, ma50, atr);
+      signals = this.generateShortSignals(data, ma21, ma50, atr, adx);
     } else { // 'both'
-      const longSignals = this.generateLongSignals(data, ma21, ma50, atr);
-      const shortSignals = this.generateShortSignals(data, ma21, ma50, atr);
+      const longSignals = this.generateLongSignals(data, ma21, ma50, atr, adx);
+      const shortSignals = this.generateShortSignals(data, ma21, ma50, atr, adx);
       signals = [...longSignals, ...shortSignals].sort((a, b) => a.date.getTime() - b.date.getTime());
     }
 
@@ -260,7 +339,7 @@ export class MATradingEngine {
   /**
    * Generate Enhanced Moving Average trading signals with re-entry logic
    */
-  private generateLongSignals(data: StockData[], ma21: number[], ma50: number[], atr: number[]): MASignal[] {
+  private generateLongSignals(data: StockData[], ma21: number[], ma50: number[], atr: number[], adx: number[]): MASignal[] {
     const signals: MASignal[] = [];
     let inTrade = false;
     let currentTrailingStop: number | null = null;
@@ -359,7 +438,7 @@ export class MATradingEngine {
             reasoning: sellReason,
             confidence,
             atr: atrValue,
-            trailing_stop: currentTrailingStop || undefined,
+            trailing_stop: currentTrailingStop,
             position_type: 'long'
           });
           inTrade = false;
@@ -423,7 +502,7 @@ export class MATradingEngine {
   /**
    * Generate SHORT trading signals (mirrored from long logic)
    */
-  private generateShortSignals(data: StockData[], ma21: number[], ma50: number[], atr: number[]): MASignal[] {
+  private generateShortSignals(data: StockData[], ma21: number[], ma50: number[], atr: number[], adx: number[]): MASignal[] {
     const signals: MASignal[] = [];
     let inTrade = false;
     let currentTrailingStop: number | null = null;
@@ -522,7 +601,7 @@ export class MATradingEngine {
             reasoning: coverReason,
             confidence,
             atr: atrValue,
-            trailing_stop: currentTrailingStop || undefined,
+            trailing_stop: currentTrailingStop,
             position_type: 'short'
           });
           inTrade = false;

@@ -297,6 +297,34 @@ export class ApiService {
     return this.http.put(`${this.API_URL}/discovery/preferences`, preferences);
   }
 
+  // Filter Testing Methods
+  getFilterStats(period: string = '2weeks'): Observable<any> {
+    const params = new HttpParams().set('period', period);
+    return this.http.get(`${this.API_URL}/filters/stats`, { params });
+  }
+
+  testFilterCombination(filters: {
+    atrMinPercentile?: number;
+    adxMinValue?: number;
+    requiredConsecutiveCloses?: number;
+    period?: string;
+  }): Observable<any> {
+    let params = new HttpParams();
+    if (filters.atrMinPercentile !== undefined) {
+      params = params.set('atrMinPercentile', filters.atrMinPercentile.toString());
+    }
+    if (filters.adxMinValue !== undefined) {
+      params = params.set('adxMinValue', filters.adxMinValue.toString());
+    }
+    if (filters.requiredConsecutiveCloses !== undefined) {
+      params = params.set('requiredConsecutiveCloses', filters.requiredConsecutiveCloses.toString());
+    }
+    if (filters.period) {
+      params = params.set('period', filters.period);
+    }
+    return this.http.get(`${this.API_URL}/filters/test`, { params });
+  }
+
   // User Trades Methods
   getUserTrades(status?: string): Observable<any> {
     const params = status ? new HttpParams().set('status', status) : new HttpParams();
