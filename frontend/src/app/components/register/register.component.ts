@@ -32,9 +32,9 @@ export class RegisterComponent {
   ) {
     this.registerForm = this.fb.group({
       name: ['jeff', [Validators.required, Validators.minLength(2)]],
-      email: ['kyzereye@gmail.com', [Validators.required, Validators.email]],
-      password: ['1qazxsw2!QAZ', [Validators.required, this.passwordStrengthValidator.bind(this)]],
-      confirmPassword: ['1qazxsw2!QAZ', Validators.required]
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, this.passwordStrengthValidator.bind(this)]],
+      confirmPassword: ['', Validators.required]
     }, { validators: this.passwordMatchValidator });
 
     // Watch password changes to update requirements checklist
