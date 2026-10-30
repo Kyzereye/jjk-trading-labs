@@ -123,6 +123,28 @@ export class DatabaseService {
   }
 
   /**
+   * Get stored stock data for a symbol (for analysis-only mode).
+   */
+  async getStockData(symbol: string): Promise<StockData[]> {
+    const [rows] = await this.pool.execute(
+      `SELECT d.date, d.open, d.high, d.low, d.close, d.volume
+       FROM daily_stock_data d
+       JOIN stock_symbols s ON s.id = d.symbol_id
+       WHERE s.symbol = ?
+       ORDER BY d.date ASC`,
+      [symbol.toUpperCase()]
+    );
+    return (rows as any[]).map(row => ({
+      date: row.date instanceof Date ? row.date : new Date(row.date),
+      open: Number(row.open),
+      high: Number(row.high),
+      low: Number(row.low),
+      close: Number(row.close),
+      volume: Number(row.volume)
+    }));
+  }
+
+  /**
    * Close database connection
    */
   async close(): Promise<void> {

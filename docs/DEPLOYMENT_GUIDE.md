@@ -79,8 +79,8 @@ npm run build --prod
 
 ### 3.4 Initialize Database
 ```bash
-cd ../backend
-mysql -u root -p StockPxLabs < sql_queries.sql
+# From repo root: run the single schema file when SQL changes
+mysql -u root -p StockPxLabs < get_stock_data/sql_queries/sql_queries.sql
 ```
 
 ## 🔄 Step 4: Process Management

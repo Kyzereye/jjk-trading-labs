@@ -202,6 +202,8 @@ export class AlertsController {
         return;
       }
 
+      const symbolStr = typeof symbol === 'string' ? symbol : Array.isArray(symbol) ? String(symbol[0]) : String(symbol);
+
       const query = `
         SELECT 
           ts.id,
@@ -222,7 +224,7 @@ export class AlertsController {
         LIMIT 50
       `;
 
-      const [rows] = await getDbConnection().execute(query, [symbol]);
+      const [rows] = await getDbConnection().execute(query, [symbolStr]);
       
       const alerts = (rows as any[]).map(row => ({
         id: row.id,
@@ -241,7 +243,7 @@ export class AlertsController {
       res.json({
         success: true,
         data: alerts,
-        symbol,
+        symbol: symbolStr,
         count: alerts.length
       });
 

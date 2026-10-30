@@ -45,6 +45,8 @@ const TIME_PERIODS = [
 // Strategy modes to analyze
 const STRATEGY_MODES = ['long', 'short', 'both'] as const;
 
+const ANALYSIS_ONLY = process.argv.includes('--analysis-only');
+
 async function fetchStockData(symbol: string, period: string = '3y'): Promise<StockData[]> {
   try {
     console.log(`Fetching data for ${symbol}...`);
@@ -79,21 +81,21 @@ async function fetchStockData(symbol: string, period: string = '3y'): Promise<St
 }
 
 async function main() {
-  console.log('🚀 Starting 3-year data fetch and performance analysis...');
-  console.log('📊 This will:');
-  console.log('   1. Fetch 3 years of stock data from Yahoo Finance');
-  console.log('   2. Store data in MySQL database');
-  console.log('   3. Run MA trading analysis on each symbol:');
-  console.log('      • Time periods: ALL data + 1 Year');
-  console.log('      • Strategy modes: LONG, SHORT, BOTH');
-  console.log('      • Total: 6 analyses per symbol');
-  console.log('   4. Store performance metrics for Top Performers\n');
-  
+  if (ANALYSIS_ONLY) {
+    console.log('🚀 Analysis-only mode: running MA trading analysis on data already in database...\n');
+  } else {
+    console.log('🚀 Starting 3-year data fetch and performance analysis...');
+    console.log('📊 This will:');
+    console.log('   1. Fetch 3 years of stock data from Yahoo Finance');
+    console.log('   2. Store data in MySQL database');
+    console.log('   3. Run MA trading analysis on each symbol');
+    console.log('   4. Store performance metrics for Top Performers\n');
+  }
+
   const db = new DatabaseService();
   const analyzer = new PerformanceAnalyzer();
-  
+
   try {
-    // Get symbols from database
     console.log('📊 Loading symbols from database...');
     const symbols = await db.getAllSymbols();
 
@@ -114,24 +116,24 @@ async function main() {
 
     for (let i = 0; i < symbols.length; i++) {
       const symbol = symbols[i];
-      
+
       try {
         console.log(`[${i + 1}/${symbols.length}] Processing ${symbol}...`);
-        
-        // Fetch data
-        const stockData = await fetchStockData(symbol);
-        
+
+        let stockData: StockData[];
+        if (ANALYSIS_ONLY) {
+          stockData = await db.getStockData(symbol);
+        } else {
+          stockData = await fetchStockData(symbol);
+          if (stockData.length > 0) {
+            const symbolId = await db.getSymbolId(symbol);
+            await db.storeStockData(symbolId, stockData);
+            console.log(`  ✅ Stored ${stockData.length} days of data`);
+            successCount++;
+          }
+        }
+
         if (stockData.length > 0) {
-          // Get symbol ID
-          const symbolId = await db.getSymbolId(symbol);
-          
-          // Store in database
-          await db.storeStockData(symbolId, stockData);
-          console.log(`  ✅ Stored ${stockData.length} days of data`);
-          
-          successCount++;
-          
-          // Run performance analysis for each time period and strategy mode
           console.log(`  🔬 Running MA trading analysis for ALL periods & strategies...`);
           let periodSuccessCount = 0;
           const totalAnalyses = TIME_PERIODS.length * STRATEGY_MODES.length;
@@ -186,7 +188,10 @@ async function main() {
           
         } else {
           errorCount++;
-          failedSymbols.push({ symbol, reason: 'No data returned from Yahoo Finance' });
+          failedSymbols.push({
+            symbol,
+            reason: ANALYSIS_ONLY ? 'No data in database' : 'No data returned from Yahoo Finance'
+          });
         }
 
         // Small delay to avoid rate limiting

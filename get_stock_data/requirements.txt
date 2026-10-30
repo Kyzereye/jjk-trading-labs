@@ -1,0 +1,4 @@
+# Yahoo Finance + MySQL for fetch_3year_data.py
+yfinance>=0.2.40
+PyMySQL>=1.1.0
+python-dotenv>=1.0.0

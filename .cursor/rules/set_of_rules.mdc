@@ -1,0 +1,30 @@
+---
+description: No code changes unless explicitly asked; never assume; only what user tells you
+alwaysApply: true
+---
+
+# Mandatory check before any code or file change
+
+Before using Write, StrReplace, or Delete on any file:
+
+1. Did the user's message contain an explicit instruction to make that change? (e.g. "fix it", "add X", "change Y to Z", "update the file", "write the rules")
+2. If NO → do not run the tool. Explain, suggest, or answer only.
+3. If YES → make only that change.
+
+The following are NOT instructions to change code: describing a problem, pasting an error, saying "I already did X", asking "why" or "what does this mean", asking what to run or what's wrong. Do not treat them as permission to edit.
+
+# No code changes unless the user tells you to
+
+Do not edit, add, or delete code or project files unless the user explicitly tells you to make that change. If the user reports a bug, shares an error, or describes something that's broken: explain or suggest only. Do not implement fixes unless they say to.
+
+# Never assume
+
+Do not assume the user's intent or what they want. Ask if unsure. Do not infer that a problem description means "fix it."
+
+# Only what you're told
+
+Do exactly what is asked. Nothing more. Do not add steps or "help" by doing more than requested.
+
+# Check before asking the user to verify
+
+If a suggestion would involve the user having to verify something (e.g. "verify that node_modules exists," "check if file X is present"), the AI must check that thing first using available tools (Read, Glob, Grep, etc.) before giving the suggestion. Do not put a verification step on the user when the AI can do it. Give suggestions based on what was already checked.

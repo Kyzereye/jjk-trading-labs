@@ -1,14 +1,11 @@
 use StockPxLabs;
--- Drop tables if they exist (in correct order - child tables first, then parents)
-DROP TABLE IF EXISTS user_trades;
-DROP TABLE IF EXISTS user_usage;
-DROP TABLE IF EXISTS user_preferences;
-DROP TABLE IF EXISTS stock_performance_metrics;
-DROP TABLE IF EXISTS trading_signals;
-DROP TABLE IF EXISTS daily_stock_data;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS stock_symbols;
-DROP TABLE IF EXISTS roles;
+
+-- Disable foreign key checks so tables can be dropped in any order
+SET FOREIGN_KEY_CHECKS = 0;
+
+DROP TABLE IF EXISTS user_trades, user_usage, user_preferences, stock_performance_metrics, trading_signals, daily_stock_data, users, stock_symbols, roles;
+
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- Create roles table
 CREATE TABLE IF NOT EXISTS roles (
@@ -195,4 +192,3 @@ CREATE TABLE IF NOT EXISTS trading_signals (
     INDEX idx_signal_date (signal_date),
     INDEX idx_signal_direction (signal_direction)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-

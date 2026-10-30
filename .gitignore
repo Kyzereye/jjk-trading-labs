@@ -130,3 +130,6 @@ coverage/
 .env.production.local
 .env.local
 
+
+# Python cache
+__pycache__/

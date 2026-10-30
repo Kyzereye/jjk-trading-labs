@@ -56,7 +56,7 @@ CREATE DATABASE StockPxLabs;
 -- Use the database
 USE StockPxLabs;
 
--- Create tables (copy from ma-stock-trading-sys/sql_queries.sql)
+-- Create tables (see get_stock_data/sql_queries/sql_queries.sql)
 -- Users table
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
